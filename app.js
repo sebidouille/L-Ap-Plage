@@ -413,11 +413,6 @@ function updateMarkers() {
             .addTo(map)
             .bindPopup(() => createPopupContent(plage));
         
-        // Créer le graphique quand le popup s'ouvre
-        marker.on('popupopen', () => {
-            setTimeout(() => createTideChart(plage), 200);
-        });
-        
         markers.push(marker);
     });
     
@@ -533,7 +528,7 @@ function createPopupContent(plage) {
     const imageUrl = getPlageImageUrl(nom);
     const imageHtml = imageUrl ? `<img src="${imageUrl}" alt="${nom}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">` : '';
     
-    const chartId = `tide-chart-${nom.replace(/\s/g, '').replace(/'/g, '').replace(/é/g, 'e').replace(/è/g, 'e')}`;
+    const chartId = `tide-chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     const content = `
         <div class="popup-header">
@@ -568,6 +563,14 @@ function createPopupContent(plage) {
             </div>
         </div>
     `;
+    
+    // Créer le graphique après le rendu
+    setTimeout(() => {
+        const canvas = document.getElementById(chartId);
+        if (canvas) {
+            createTideChartInCanvas(canvas, plage);
+        }
+    }, 300);
     
     return content;
 }
@@ -649,22 +652,17 @@ function getTideInfo() {
     };
 }
 
-function createTideChart(plage) {
-    const nom = plage.Nom || plage.nom || 'Plage';
-    const canvasId = `tide-chart-${nom.replace(/\s/g, '').replace(/'/g, '').replace(/é/g, 'e').replace(/è/g, 'e')}`;
-    const canvas = document.getElementById(canvasId);
-    
-    if (!canvas) {
-        console.warn(`Canvas ${canvasId} non trouvé pour ${nom}`);
+// Créer le graphique directement dans un canvas
+function createTideChartInCanvas(canvas, plage) {
+    // Attendre que Chart.js soit chargé
+    if (typeof Chart === 'undefined') {
+        console.warn('Chart.js pas encore chargé');
         return;
     }
     
-    const ctx = canvas.getContext('2d');
+    console.log('Création graphique pour', plage.Nom || plage.nom);
     
-    // Détruire l'ancien graphique s'il existe
-    if (canvas.chart) {
-        canvas.chart.destroy();
-    }
+    const ctx = canvas.getContext('2d');
     
     // Récupérer les données de marée du jour
     const now = selectedDateTime || currentDateTime;
@@ -672,7 +670,7 @@ function createTideChart(plage) {
     const todayTide = mareesData.find(m => m.date && m.date.startsWith(today));
     
     if (!todayTide) {
-        console.warn('Pas de données de marée pour aujourd\'hui');
+        console.warn('Pas de données de marée');
         return;
     }
     
@@ -680,10 +678,7 @@ function createTideChart(plage) {
     const parseHour = (timeStr) => {
         if (!timeStr) return null;
         const match = timeStr.match(/(\d+)h(\d+)/);
-        if (match) {
-            return parseInt(match[1]) + parseInt(match[2]) / 60;
-        }
-        return null;
+        return match ? parseInt(match[1]) + parseInt(match[2]) / 60 : null;
     };
     
     const bm1 = parseHour(todayTide.bm1_heure || todayTide.bm1);
@@ -694,87 +689,75 @@ function createTideChart(plage) {
     const hauteurMax = parseFloat(todayTide.hauteur_max) || 5.3;
     const hauteurMin = 0.9;
     
-    // Construire les points du graphique
+    // Générer les données
     const labels = [];
     const data = [];
-    const currentHour = now.getHours() + now.getMinutes() / 60;
     
-    // Générer 24h de données
     for (let h = 0; h <= 24; h += 0.5) {
         labels.push(h % 1 === 0 ? `${Math.floor(h)}h` : '');
         
-        // Calculer la hauteur à cette heure
         let height = hauteurMax / 2;
         
         if (bm1 && pm1) {
-            if (h < bm1) {
-                height = hauteurMin + 0.5;
-            } else if (h < pm1) {
-                const progress = (h - bm1) / (pm1 - bm1);
-                height = hauteurMin + progress * (hauteurMax - hauteurMin);
-            } else if (bm2 && h < bm2) {
-                const progress = (h - pm1) / (bm2 - pm1);
-                height = hauteurMax - progress * (hauteurMax - hauteurMin);
-            } else if (pm2 && h < pm2) {
-                const progress = (h - bm2) / (pm2 - bm2);
-                height = hauteurMin + progress * (hauteurMax - hauteurMin);
-            } else if (pm2) {
-                const progress = (h - pm2) / (24 - pm2);
-                height = hauteurMax - progress * (hauteurMax - hauteurMin) * 0.5;
-            }
+            if (h < bm1) height = hauteurMin + 0.5;
+            else if (h < pm1) height = hauteurMin + ((h - bm1) / (pm1 - bm1)) * (hauteurMax - hauteurMin);
+            else if (bm2 && h < bm2) height = hauteurMax - ((h - pm1) / (bm2 - pm1)) * (hauteurMax - hauteurMin);
+            else if (pm2 && h < pm2) height = hauteurMin + ((h - bm2) / (pm2 - bm2)) * (hauteurMax - hauteurMin);
+            else if (pm2) height = hauteurMax - ((h - pm2) / (24 - pm2)) * (hauteurMax - hauteurMin) * 0.5;
         }
         
         data.push(Math.max(hauteurMin, Math.min(hauteurMax, height)));
     }
     
-    canvas.chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Hauteur (m)',
-                data,
-                borderColor: '#1e88e5',
-                backgroundColor: 'rgba(30, 136, 229, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => `${context.parsed.y.toFixed(2)}m`
-                    }
-                }
+    try {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Hauteur (m)',
+                    data,
+                    borderColor: '#1e88e5',
+                    backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
             },
-            scales: {
-                x: {
-                    ticks: {
-                        maxRotation: 0,
-                        autoSkip: true,
-                        maxTicksLimit: 12
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.parsed.y.toFixed(2)}m`
+                        }
                     }
                 },
-                y: {
-                    min: 0,
-                    max: Math.ceil(hauteurMax),
-                    ticks: { 
-                        callback: value => value + 'm',
-                        stepSize: 1
+                scales: {
+                    x: {
+                        ticks: {
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 12
+                        }
+                    },
+                    y: {
+                        min: 0,
+                        max: Math.ceil(hauteurMax),
+                        ticks: { 
+                            callback: value => value + 'm',
+                            stepSize: 1
+                        }
                     }
                 }
-            },
-            interaction: {
-                intersect: false,
-                mode: 'index'
             }
-        }
-    });
+        });
+        console.log('✓ Graphique créé');
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
 }
 
 // Utilitaires
