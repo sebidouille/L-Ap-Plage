@@ -1,6 +1,12 @@
 // Configuration
 const CONFIG = {
-    SHEET_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJyHbc7PkwrZCNp4pk4yRIwskOUu27oWjYt_IBxNYtYG7aAWB2S1leol5nHITv29wUCYEiAczyTY9s/pub?output=csv',
+    SHEET_BASE_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJyHbc7PkwrZCNp4pk4yRIwskOUu27oWjYt_IBxNYtYG7aAWB2S1leol5nHITv29wUCYEiAczyTY9s/pub?output=csv',
+    SHEET_GIDS: {
+        PLAGES: 0,
+        METEO: 146047806,
+        MAREES: 138428367,
+        RECOMMANDATIONS: 2049933385
+    },
     GROIX_CENTER: [47.6389, -3.4523],
     ZOOM_LEVEL: 13
 };
@@ -57,12 +63,30 @@ function initMap() {
 // Chargement des données depuis Google Sheets
 async function loadData() {
     try {
-        // Charger toutes les feuilles
-        const response = await fetch(CONFIG.SHEET_URL.replace('pub?output=csv', 'pub?output=csv&gid=0'));
-        const csvText = await response.text();
+        // Charger les 4 onglets en parallèle
+        const [plagesCSV, meteoCSV, mareesCSV, recoCSV] = await Promise.all([
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.PLAGES}`).then(r => r.text()),
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.METEO}`).then(r => r.text()),
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.MAREES}`).then(r => r.text()),
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RECOMMANDATIONS}`).then(r => r.text())
+        ]);
         
-        // Parser les données (simplifié - à adapter selon la structure réelle)
-        await parseSheetData(csvText);
+        // Parser les données
+        plagesData = parseCSV(plagesCSV);
+        const meteoArray = parseCSV(meteoCSV);
+        meteoData = meteoArray[0] || {};
+        mareesData = parseCSV(mareesCSV);
+        const recoArray = parseCSV(recoCSV);
+        
+        // Enrichir plagesData avec les couleurs des recommandations
+        plagesData.forEach((plage, index) => {
+            if (recoArray[index]) {
+                plage.couleur = recoArray[index].couleur;
+                plage.score = parseFloat(recoArray[index].SCORE_FINAL) || 0;
+            }
+        });
+        
+        console.log('Données chargées:', { plages: plagesData.length, marees: mareesData.length });
         
     } catch (error) {
         console.error('Erreur de chargement:', error);
@@ -70,29 +94,47 @@ async function loadData() {
     }
 }
 
-async function parseSheetData(csvText) {
-    // Pour l'instant, utilisons des données de test
-    // Dans la version finale, on parsera le CSV correctement
+// Parser CSV simple
+function parseCSV(csvText) {
+    const lines = csvText.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     
-    // Données de test
-    plagesData = [
-        { nom: "Porh Morvil", lat: 47.6424, lon: -3.4302, maree_ideale: ["haute"], orientation: "S" },
-        { nom: "Porzh er Roued", lat: 47.6389, lon: -3.4246, maree_ideale: ["haute", "mi"], orientation: "SO" },
-        { nom: "Plage des Grands Sables", lat: 47.6376, lon: -3.4179, maree_ideale: ["basse", "mi", "haute"], orientation: "E" },
-        { nom: "Port Lay", lat: 47.6453, lon: -3.4602, maree_ideale: ["haute", "mi"], orientation: "N" },
-        { nom: "Poulziorec", lat: 47.6492, lon: -3.4789, maree_ideale: ["basse"], orientation: "N-NO" }
-    ];
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        if (values.length > 0 && values[0]) { // Ignorer les lignes vides
+            const row = {};
+            headers.forEach((header, index) => {
+                row[header] = values[index] ? values[index].trim().replace(/"/g, '') : '';
+            });
+            data.push(row);
+        }
+    }
     
-    mareesData = [
-        { date: "2026-02-19", coef_matin: 97, coef_soir: 98, bm1: "11:59", pm1: "05:40", bm2: "", pm2: "17:59", hauteur_max: 5.29 },
-        { date: "2026-02-20", coef_matin: 98, coef_soir: 98, bm1: "00:12", pm1: "06:13", bm2: "12:36", pm2: "18:31", hauteur_max: 5.30 }
-    ];
+    return data;
+}
+
+// Parser une ligne CSV (gère les virgules dans les guillemets)
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
     
-    meteoData = {
-        direction_vent: 310,
-        force_vent_kmh: 28,
-        temperature_c: 12
-    };
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    
+    return result;
 }
 
 // Initialisation de l'UI
@@ -217,18 +259,39 @@ function updateMarkers() {
     markers.forEach(m => map.removeLayer(m));
     markers = [];
     
-    // Calculer les conditions pour chaque plage
+    // Créer un marqueur pour chaque plage
     plagesData.forEach(plage => {
-        const score = calculateBeachScore(plage);
-        const color = getColorFromScore(score);
+        // Utiliser les coordonnées du sheet
+        const lat = parseFloat(plage.Latitude || plage.latitude);
+        const lon = parseFloat(plage.Longitude || plage.longitude);
+        
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) {
+            console.warn(`Coordonnées invalides pour ${plage.Nom || plage.nom}`, lat, lon);
+            return;
+        }
+        
+        // Utiliser la couleur des recommandations ou calculer le score
+        const color = plage.couleur ? getColorFromName(plage.couleur) : getColorFromScore(plage.score || 50);
         const icon = createCustomIcon(color);
         
-        const marker = L.marker([plage.lat, plage.lon], { icon })
+        const marker = L.marker([lat, lon], { icon })
             .addTo(map)
-            .bindPopup(() => createPopupContent(plage, score));
+            .bindPopup(() => createPopupContent(plage));
         
         markers.push(marker);
     });
+    
+    console.log(`${markers.length} marqueurs créés`);
+}
+
+function getColorFromName(colorName) {
+    const colorMap = {
+        'Vert': 'green',
+        'Bleu': 'blue',
+        'Orange': 'orange',
+        'Rouge': 'red'
+    };
+    return colorMap[colorName] || 'blue';
 }
 
 function calculateBeachScore(plage) {
@@ -310,21 +373,23 @@ function createCustomIcon(color) {
     });
 }
 
-function createPopupContent(plage, score) {
-    const color = getColorFromScore(score);
+function createPopupContent(plage) {
+    const nom = plage.Nom || plage.nom || 'Plage';
+    const mareeIdeale = plage['Marée idéale'] || plage.maree_ideale || 'inconnue';
+    const score = plage.score || 0;
+    const color = plage.couleur ? getColorFromName(plage.couleur) : getColorFromScore(score);
     const emoji = { green: '😃', blue: '🙂', orange: '😐', red: '☹️' }[color];
     
-    const tideState = getCurrentTideState();
     const tideInfo = getTideInfo();
     
     const content = `
         <div class="popup-header">
-            ${emoji} ${plage.nom}
+            ${emoji} ${nom}
         </div>
         <div class="popup-body">
             <div class="popup-section">
                 <h4>Marée idéale</h4>
-                <p>${plage.maree_ideale.join(', ')}</p>
+                <p>${mareeIdeale}</p>
             </div>
             
             <div class="popup-section">
@@ -341,7 +406,7 @@ function createPopupContent(plage, score) {
             </div>
             
             <div class="tide-chart-container">
-                <canvas id="tide-chart-${plage.nom.replace(/\s/g, '')}"></canvas>
+                <canvas id="tide-chart-${nom.replace(/\s/g, '').replace(/'/g, '')}"></canvas>
             </div>
         </div>
     `;
@@ -353,19 +418,67 @@ function createPopupContent(plage, score) {
 }
 
 function getTideInfo() {
-    // Informations sur la marée actuelle
     const now = selectedDateTime || currentDateTime;
+    
+    // Trouver les données de marée du jour
+    const today = now.toISOString().split('T')[0];
+    const todayTide = mareesData.find(m => m.date && m.date.startsWith(today));
+    
+    if (!todayTide) {
+        // Fallback si pas de données
+        return {
+            arrow: '↗️',
+            status: 'Montante',
+            height: '3.5',
+            max_high: '5.3',
+            max_low: '0.9'
+        };
+    }
+    
     const hour = now.getHours() + now.getMinutes() / 60;
     
-    // Simplifié - dans la vraie version, on utilisera les données MAREES
-    const cycle = hour % 12;
-    const isRising = cycle < 6;
+    // Parser les heures de marée
+    const parseHour = (timeStr) => {
+        if (!timeStr) return null;
+        const match = timeStr.match(/(\d+)h(\d+)/);
+        if (match) {
+            return parseInt(match[1]) + parseInt(match[2]) / 60;
+        }
+        return null;
+    };
+    
+    const bm1 = parseHour(todayTide.bm1_heure || todayTide.bm1);
+    const pm1 = parseHour(todayTide.pm1_heure || todayTide.pm1);
+    const bm2 = parseHour(todayTide.bm2_heure || todayTide.bm2);
+    const pm2 = parseHour(todayTide.pm2_heure || todayTide.pm2);
+    
+    const hauteurMax = parseFloat(todayTide.hauteur_max) || 5.3;
+    
+    // Déterminer si marée montante ou descendante
+    let isRising = true;
+    let currentHeight = hauteurMax / 2;
+    
+    if (bm1 && pm1) {
+        if (hour < pm1) {
+            isRising = true;
+            currentHeight = 0.9 + ((hour - (bm1 || 0)) / (pm1 - (bm1 || 0))) * (hauteurMax - 0.9);
+        } else if (bm2 && hour < bm2) {
+            isRising = false;
+            currentHeight = hauteurMax - ((hour - pm1) / (bm2 - pm1)) * (hauteurMax - 0.9);
+        } else if (pm2 && hour < pm2) {
+            isRising = true;
+            currentHeight = 0.9 + ((hour - (bm2 || 12)) / (pm2 - (bm2 || 12))) * (hauteurMax - 0.9);
+        } else {
+            isRising = false;
+            currentHeight = hauteurMax - ((hour - (pm2 || 18)) / 6) * (hauteurMax - 0.9);
+        }
+    }
     
     return {
         arrow: isRising ? '↗️' : '↘️',
         status: isRising ? 'Montante' : 'Descendante',
-        height: (3 + Math.sin((cycle / 6) * Math.PI) * 2).toFixed(1),
-        max_high: '5.3',
+        height: Math.max(0.5, Math.min(hauteurMax, currentHeight)).toFixed(1),
+        max_high: hauteurMax.toFixed(1),
         max_low: '0.9'
     };
 }
