@@ -85,8 +85,9 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(245, 222, 179, 0.9);
-    backdrop-filter: blur(10px);
+    background: rgba(245, 222, 179, 0.7);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     padding: 12px 16px;
     display: flex;
     justify-content: space-around;
