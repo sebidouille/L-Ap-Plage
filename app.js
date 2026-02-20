@@ -121,10 +121,10 @@ function geolocateUser() {
                 html: `<div style="
                     width: 20px;
                     height: 20px;
-                    background: #2196f3;
+                    background: #9c27b0;
                     border: 3px solid white;
                     border-radius: 50%;
-                    box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+                    box-shadow: 0 0 10px rgba(156, 39, 176, 0.5);
                     animation: pulse 2s infinite;
                 "></div>`,
                 className: '',
