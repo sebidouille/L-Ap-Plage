@@ -598,8 +598,8 @@ function createPopupContent(plage) {
 function getPlageImageUrl(nomPlage) {
     // Map des images de plages
     const images = {
-        "Plage des Grands Sables": "images/Les-grands-sables.jpg",
-        "Les Grands Sables": "images/Les-grands-sables.jpg",
+        "Plage des Grands Sables": "images/les-grands-sables.jpg",
+        "Les Grands Sables": "images/les-grands-sables.jpg",
         "Port Mélite": "images/port-melite.jpg",
         "Côte d'Héno": "images/cote-d-heno.jpg",
         "Plage d'Héno": "images/cote-d-heno.jpg",
