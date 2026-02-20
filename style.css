@@ -85,7 +85,7 @@ body {
     bottom: 10px;
     left: 0;
     right: 0;
-    background: none;
+    background: blur;
     padding: 0;
     display: flex;
     justify-content: center;
