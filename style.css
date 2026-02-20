@@ -79,7 +79,29 @@ body {
     z-index: 1;
 }
 
+/* Légende */
+#legend {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(245, 222, 179, 0.7);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-around;
+    box-shadow: 0 -2px 8px var(--shadow);
+    z-index: 1000;
+}
 
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #333;
+}
 
 .marker-circle {
     width: 16px;
