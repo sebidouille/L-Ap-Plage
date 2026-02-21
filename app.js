@@ -624,7 +624,8 @@ function getPlageImageUrl(nomPlage) {
     if (!result) {
         const normalized = nomPlage
             .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[\u0300-\u036f]/g, "")  // Supprimer les accents
+            .replace(/['']/g, "'")  // Normaliser les apostrophes
             .toLowerCase()
             .trim();
         
@@ -633,8 +634,6 @@ function getPlageImageUrl(nomPlage) {
         // Mapping alternatif sans accents
         const alternativeImages = {
             "cote d'heno": "images/cote-d-heno.jpg",
-            "cote d'heno": "images/cote-d-heno.jpg",
-            "plage d'heno": "images/cote-d-heno.jpg",
             "plage d'heno": "images/cote-d-heno.jpg",
             "plage de la cote d'heno": "images/cote-d-heno.jpg"
         };
