@@ -603,11 +603,16 @@ function getPlageImageUrl(nomPlage) {
         "Plage des Grands Sables": "images/les-grands-sables.jpg",
         "Les Grands Sables": "images/les-grands-sables.jpg",
         "Port Mélite": "images/port-melite.jpg",
+        
+        // Toutes les variantes de Côte d'Héno
         "Côte d'Héno": "images/cote-d-heno.jpg",
-        "Plage d'Héno": "images/cote-d-heno.jpg",
         "Cote d'Héno": "images/cote-d-heno.jpg",
+        "Côte d'Heno": "images/cote-d-heno.jpg",
         "Cote d'Heno": "images/cote-d-heno.jpg",
+        "Plage d'Héno": "images/cote-d-heno.jpg",
+        "Plage d'Heno": "images/cote-d-heno.jpg",
         "Plage de la Côte d'Héno": "images/cote-d-heno.jpg",
+        
         "Poulziorec": "images/poulziorec.jpg",
         "Sables Rouges": "images/les-sables-rouges.jpg",
         "Les Sables Rouges": "images/les-sables-rouges.jpg",
@@ -620,28 +625,15 @@ function getPlageImageUrl(nomPlage) {
     // Recherche exacte d'abord
     let result = images[nomPlage];
     
-    // Si pas trouvé, essayer sans accents et en minuscules
-    if (!result) {
-        const normalized = nomPlage
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")  // Supprimer les accents
-            .replace(/['']/g, "'")  // Normaliser les apostrophes
-            .toLowerCase()
-            .trim();
-        
-        console.log('Nom normalisé:', normalized);
-        
-        // Mapping alternatif sans accents
-        const alternativeImages = {
-            "cote d'heno": "images/cote-d-heno.jpg",
-            "plage d'heno": "images/cote-d-heno.jpg",
-            "plage de la cote d'heno": "images/cote-d-heno.jpg"
-        };
-        
-        result = alternativeImages[normalized];
+    console.log('Recherche exacte:', result ? 'trouvée' : 'non trouvée');
+    
+    // Si toujours pas trouvé, forcer pour "Plage d'Héno" spécifiquement
+    if (!result && (nomPlage.includes('Héno') || nomPlage.includes('Heno') || nomPlage.includes('héno') || nomPlage.includes('heno'))) {
+        console.log('Détection Héno/heno - Force image');
+        result = "images/cote-d-heno.jpg";
     }
     
-    console.log('Image trouvée:', result);
+    console.log('Image finale:', result);
     
     return result || null;
 }
