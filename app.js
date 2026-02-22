@@ -801,8 +801,9 @@ function createTideChartInCanvas(canvas, plage) {
                     borderColor: '#1e88e5',
                     backgroundColor: 'rgba(30, 136, 229, 0.1)',
                     fill: true,
-                    tension: 0.6,
-                    pointRadius: 0
+                    tension: 0.85,
+                    pointRadius: 0,
+                    borderWidth: 2
                 }]
             },
             options: {
