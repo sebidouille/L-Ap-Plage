@@ -452,14 +452,93 @@ function updateMarkers() {
             const popup = marker.getPopup();
             const popupElement = popup.getElement();
             if (popupElement) {
-                popupElement.addEventListener('click', function() {
-                    map.closePopup();
-                    // Réinitialiser le marqueur
-                    if (selectedMarker === marker) {
-                        marker.setIcon(createCustomIcon(color, false));
-                        selectedMarker = null;
+                // Fermer au clic
+                popupElement.addEventListener('click', function(e) {
+                    // Ne pas fermer si on clique sur le canvas (graphique)
+                    if (e.target.tagName !== 'CANVAS') {
+                        map.closePopup();
+                        // Réinitialiser le marqueur
+                        if (selectedMarker === marker) {
+                            marker.setIcon(createCustomIcon(color, false));
+                            selectedMarker = null;
+                        }
                     }
                 });
+                
+                // Rendre le popup déplaçable
+                let isDragging = false;
+                let startX, startY;
+                let scrollLeft, scrollTop;
+                
+                const popupContent = popupElement.querySelector('.leaflet-popup-content-wrapper');
+                
+                if (popupContent) {
+                    popupContent.style.cursor = 'grab';
+                    
+                    popupContent.addEventListener('mousedown', function(e) {
+                        // Ne pas déplacer si on clique sur le canvas
+                        if (e.target.tagName === 'CANVAS') return;
+                        
+                        isDragging = true;
+                        popupContent.style.cursor = 'grabbing';
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        const mapCenter = map.getCenter();
+                        scrollLeft = mapCenter.lng;
+                        scrollTop = mapCenter.lat;
+                        e.preventDefault();
+                    });
+                    
+                    popupContent.addEventListener('touchstart', function(e) {
+                        // Ne pas déplacer si on touche le canvas
+                        if (e.target.tagName === 'CANVAS') return;
+                        
+                        isDragging = true;
+                        const touch = e.touches[0];
+                        startX = touch.clientX;
+                        startY = touch.clientY;
+                        const mapCenter = map.getCenter();
+                        scrollLeft = mapCenter.lng;
+                        scrollTop = mapCenter.lat;
+                    }, { passive: true });
+                    
+                    document.addEventListener('mousemove', function(e) {
+                        if (!isDragging) return;
+                        
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+                        
+                        // Convertir les pixels en degrés (approximatif)
+                        const scale = 0.0001;
+                        const newLng = scrollLeft - (dx * scale);
+                        const newLat = scrollTop + (dy * scale);
+                        
+                        map.panTo([newLat, newLng], { animate: false });
+                    });
+                    
+                    document.addEventListener('touchmove', function(e) {
+                        if (!isDragging) return;
+                        
+                        const touch = e.touches[0];
+                        const dx = touch.clientX - startX;
+                        const dy = touch.clientY - startY;
+                        
+                        const scale = 0.0001;
+                        const newLng = scrollLeft - (dx * scale);
+                        const newLat = scrollTop + (dy * scale);
+                        
+                        map.panTo([newLat, newLng], { animate: false });
+                    }, { passive: true });
+                    
+                    document.addEventListener('mouseup', function() {
+                        isDragging = false;
+                        if (popupContent) popupContent.style.cursor = 'grab';
+                    });
+                    
+                    document.addEventListener('touchend', function() {
+                        isDragging = false;
+                    });
+                }
             }
         });
         
