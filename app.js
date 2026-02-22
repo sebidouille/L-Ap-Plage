@@ -727,7 +727,28 @@ function getPlageImageUrl(nomPlage) {
         "Plage du WWF": "images/plage-du-wwf.jpg",
         "Port Coustic": "images/port-coustic.jpg",
         "Port-Coustic": "images/port-coustic.jpg",
-        "Plage de Port Coustic": "images/port-coustic.jpg"
+        "Plage de Port Coustic": "images/port-coustic.jpg",
+        
+        // Nouvelles photos
+        "Port Melin": "images/port-melin.jpg",
+        "Port Lay": "images/port-lay.jpg",
+        "Porskedoul": "images/porskedoul.jpg",
+        "Porh Morvil": "images/port-morvil.jpg",
+        "Porzh er Roued": "images/porhzh-er-roed.jpg",
+        "Porzh er roued": "images/porhzh-er-roed.jpg",
+        "Le Stang": "images/stang.jpg",
+        "Stang": "images/stang.jpg",
+        "Baie des Curés": "images/baie-des-cures.jpg",
+        "Baie des Cures": "images/baie-des-cures.jpg",
+        "Port St Nicolas": "images/port-saint-nicolas.jpg",
+        "Port Saint Nicolas": "images/port-saint-nicolas.jpg",
+        "Port Saint-Nicolas": "images/port-saint-nicolas.jpg",
+        "Locmaria": "images/locmaria.jpg",
+        "Pointe des Chats": "images/pointe-des-chats.jpg",
+        "Pointe des chats": "images/pointe-des-chats.jpg",
+        "Chochaï": "images/chochai.jpg",
+        "Chochai": "images/chochai.jpg",
+        "Kermarec": "images/kermarec.jpg"
     };
     
     // Recherche exacte d'abord
