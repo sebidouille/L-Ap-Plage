@@ -44,10 +44,13 @@ body {
     text-align: center;
     font-size: 14px;
     font-weight: 500;
-    padding: 4px 8px;
+    padding: 4px 12px;
     border-radius: 8px;
     transition: background 0.3s;
     pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 #datetime-display.clickable {
@@ -56,6 +59,11 @@ body {
 
 #datetime-display.clickable:hover {
     background: rgba(255, 255, 255, 0.3);
+}
+
+#datetime-info {
+    display: flex;
+    flex-direction: column;
 }
 
 #current-date {
@@ -69,6 +77,12 @@ body {
     font-size: 16px;
     font-weight: 600;
     margin-top: 2px;
+}
+
+.calendar-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
 }
 
 /* Carte */
