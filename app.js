@@ -776,24 +776,38 @@ function createTideChartInCanvas(canvas, plage) {
     const hauteurMax = parseFloat(todayTide.hauteur_max) || 5.3;
     const hauteurMin = 0.9;
     
-    // Générer les données
+    // Générer les données avec une vraie courbe sinusoïdale
     const labels = [];
     const data = [];
     
-    for (let h = 0; h <= 24; h += 0.5) {
+    // Créer une courbe sinusoïdale basée sur les horaires de marée
+    for (let h = 0; h <= 24; h += 0.25) {  // Plus de points = courbe plus lisse
         labels.push(h % 1 === 0 ? `${Math.floor(h)}h` : '');
         
         let height = hauteurMax / 2;
         
-        if (bm1 && pm1) {
-            if (h < bm1) height = hauteurMin + 0.5;
-            else if (h < pm1) height = hauteurMin + ((h - bm1) / (pm1 - bm1)) * (hauteurMax - hauteurMin);
-            else if (bm2 && h < bm2) height = hauteurMax - ((h - pm1) / (bm2 - pm1)) * (hauteurMax - hauteurMin);
-            else if (pm2 && h < pm2) height = hauteurMin + ((h - bm2) / (pm2 - bm2)) * (hauteurMax - hauteurMin);
-            else if (pm2) height = hauteurMax - ((h - pm2) / (24 - pm2)) * (hauteurMax - hauteurMin) * 0.5;
+        if (bm1 && pm1 && bm2 && pm2) {
+            // Utiliser une sinusoïde pour une courbe naturelle
+            if (h < pm1) {
+                // Première montée (bm1 -> pm1)
+                const phase = ((h - bm1) / (pm1 - bm1)) * Math.PI;
+                height = hauteurMin + ((hauteurMax - hauteurMin) / 2) * (1 - Math.cos(phase));
+            } else if (h < bm2) {
+                // Première descente (pm1 -> bm2)
+                const phase = ((h - pm1) / (bm2 - pm1)) * Math.PI;
+                height = hauteurMax - ((hauteurMax - hauteurMin) / 2) * (1 - Math.cos(phase));
+            } else if (h < pm2) {
+                // Deuxième montée (bm2 -> pm2)
+                const phase = ((h - bm2) / (pm2 - bm2)) * Math.PI;
+                height = hauteurMin + ((hauteurMax - hauteurMin) / 2) * (1 - Math.cos(phase));
+            } else {
+                // Après pm2
+                const phase = ((h - pm2) / (24 - pm2 + bm1)) * Math.PI * 0.5;
+                height = hauteurMax - ((hauteurMax - hauteurMin) / 2) * (1 - Math.cos(phase));
+            }
         }
         
-        data.push(Math.max(hauteurMin, Math.min(hauteurMax, height)));
+        data.push(Math.max(hauteurMin * 0.8, Math.min(hauteurMax * 1.1, height)));
     }
     
     try {
