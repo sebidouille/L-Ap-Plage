@@ -620,24 +620,38 @@ function createCustomIcon(color, selected = false) {
     };
     
     const borderColor = selected ? '#9c27b0' : 'white';
-    const borderWidth = selected ? '4px' : '3px';
+    const borderWidth = selected ? '3' : '2';
     
-    const html = `
-        <div style="
-            width: 24px;
-            height: 24px;
-            background: ${colors[color]};
-            border: ${borderWidth} solid ${borderColor};
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        "></div>
+    const parasol = `
+        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <!-- Ombre au sol -->
+            <ellipse cx="20" cy="38" rx="8" ry="2" fill="rgba(0,0,0,0.15)"/>
+            
+            <!-- Mât du parasol -->
+            <rect x="18" y="20" width="4" height="17" fill="#8B7355" rx="1"/>
+            
+            <!-- Base du parasol -->
+            <rect x="17" y="35" width="6" height="3" fill="#A0826D" rx="1"/>
+            
+            <!-- Toile du parasol (demi-cercle) -->
+            <path d="M 8 20 Q 8 8, 20 8 Q 32 8, 32 20 Z" 
+                  fill="${colors[color]}" 
+                  stroke="${borderColor}" 
+                  stroke-width="${borderWidth}"/>
+            
+            <!-- Segments pour donner du relief -->
+            <path d="M 20 8 L 20 20" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
+            <path d="M 14 11 L 17 20" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
+            <path d="M 26 11 L 23 20" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
+        </svg>
     `;
     
     return L.divIcon({
-        html,
+        html: parasol,
         className: '',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+        iconSize: [40, 40],
+        iconAnchor: [20, 38],
+        popupAnchor: [0, -38]
     });
 }
 
