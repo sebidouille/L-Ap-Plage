@@ -811,20 +811,24 @@ function createTideChartInCanvas(canvas, plage) {
     }
     
     try {
+        const currentHour = now.getHours() + now.getMinutes() / 60;
+        
         canvas.chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels,
-                datasets: [{
-                    label: 'Hauteur (m)',
-                    data,
-                    borderColor: '#1e88e5',
-                    backgroundColor: 'rgba(30, 136, 229, 0.1)',
-                    fill: true,
-                    tension: 0.9,
-                    pointRadius: 0,
-                    borderWidth: 2.5
-                }]
+                datasets: [
+                    {
+                        label: 'Hauteur (m)',
+                        data,
+                        borderColor: '#1e88e5',
+                        backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                        fill: true,
+                        tension: 0.9,
+                        pointRadius: 0,
+                        borderWidth: 2.5
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -854,9 +858,41 @@ function createTideChartInCanvas(canvas, plage) {
                         }
                     }
                 }
-            }
+            },
+            plugins: [{
+                id: 'currentTimeMarker',
+                afterDatasetsDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const xAxis = chart.scales.x;
+                    const yAxis = chart.scales.y;
+                    
+                    // Calculer la position X de l'heure actuelle
+                    const currentIndex = currentHour * 4; // 4 points par heure
+                    const x = xAxis.getPixelForValue(currentIndex);
+                    
+                    // Dessiner la ligne rouge
+                    ctx.save();
+                    ctx.strokeStyle = '#f44336';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(x, yAxis.top);
+                    ctx.lineTo(x, yAxis.bottom);
+                    ctx.stroke();
+                    ctx.restore();
+                    
+                    // Dessiner le label de l'heure
+                    ctx.save();
+                    const hourText = `${Math.floor(currentHour)}h${String(Math.round((currentHour % 1) * 60)).padStart(2, '0')}`;
+                    ctx.fillStyle = '#f44336';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(hourText, x, yAxis.top - 5);
+                    ctx.restore();
+                }
+            }]
         });
-        console.log('✓ Graphique créé avec tension 0.9');
+        console.log('✓ Graphique créé avec barre horaire à', currentHour.toFixed(2), 'h');
     } catch (error) {
         console.error('Erreur:', error);
     }
