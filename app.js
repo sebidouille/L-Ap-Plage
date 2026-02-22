@@ -673,12 +673,9 @@ function createPopupContent(plage) {
         <div class="popup-body">
             ${imageHtml}
             
-            <div style="font-size: 13px; line-height: 1.6;">
+            <div style="font-size: 13px; line-height: 1.6; margin-bottom: 12px;">
                 <p style="margin: 8px 0;"><strong>Marée idéale :</strong> ${mareeIdeale}</p>
                 <p style="margin: 8px 0;"><strong>Marée actuelle :</strong> ${tideInfo.arrow} ${tideInfo.status} (${tideInfo.height}m)</p>
-                <p style="margin: 8px 0; font-size: 12px; color: #666;">
-                    🔺 Max haut: ${tideInfo.max_high}m &nbsp;•&nbsp; 🔻 Max bas: ${tideInfo.max_low}m
-                </p>
             </div>
             
             <div class="tide-chart-container">
