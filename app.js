@@ -745,6 +745,12 @@ function createTideChartInCanvas(canvas, plage) {
     
     const ctx = canvas.getContext('2d');
     
+    // IMPORTANT : Détruire tout graphique existant
+    if (canvas.chartInstance) {
+        canvas.chartInstance.destroy();
+        canvas.chartInstance = null;
+    }
+    
     // Récupérer les données de marée du jour
     const now = selectedDateTime || currentDateTime;
     const today = now.toISOString().split('T')[0];
@@ -791,7 +797,7 @@ function createTideChartInCanvas(canvas, plage) {
     }
     
     try {
-        new Chart(ctx, {
+        canvas.chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels,
@@ -801,9 +807,9 @@ function createTideChartInCanvas(canvas, plage) {
                     borderColor: '#1e88e5',
                     backgroundColor: 'rgba(30, 136, 229, 0.1)',
                     fill: true,
-                    tension: 0.85,
+                    tension: 0.9,
                     pointRadius: 0,
-                    borderWidth: 2
+                    borderWidth: 2.5
                 }]
             },
             options: {
@@ -836,7 +842,7 @@ function createTideChartInCanvas(canvas, plage) {
                 }
             }
         });
-        console.log('✓ Graphique créé');
+        console.log('✓ Graphique créé avec tension 0.9');
     } catch (error) {
         console.error('Erreur:', error);
     }
