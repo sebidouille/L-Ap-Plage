@@ -851,7 +851,7 @@ function createTideChartInCanvas(canvas, plage) {
                     },
                     y: {
                         min: 0,
-                        max: Math.ceil(hauteurMax),
+                        max: 6,
                         ticks: { 
                             callback: value => value + 'm',
                             stepSize: 1
@@ -879,15 +879,6 @@ function createTideChartInCanvas(canvas, plage) {
                     ctx.moveTo(x, yAxis.top);
                     ctx.lineTo(x, yAxis.bottom);
                     ctx.stroke();
-                    ctx.restore();
-                    
-                    // Dessiner le label de l'heure
-                    ctx.save();
-                    const hourText = `${Math.floor(currentHour)}h${String(Math.round((currentHour % 1) * 60)).padStart(2, '0')}`;
-                    ctx.fillStyle = '#f44336';
-                    ctx.font = 'bold 11px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(hourText, x, yAxis.top - 5);
                     ctx.restore();
                 }
             }]
