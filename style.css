@@ -84,7 +84,7 @@ body {
 }
 
 .nav-menu.show {
-    transform: translateX(0);
+    transform: translateX(0) !important;
 }
 
 .nav-menu-header {
@@ -164,8 +164,8 @@ body {
 }
 
 .menu-overlay.show {
-    opacity: 1;
-    pointer-events: auto;
+    opacity: 1 !important;
+    pointer-events: auto !important;
 }
 
 #datetime-display {
