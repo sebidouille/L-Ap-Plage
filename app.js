@@ -5,7 +5,9 @@ const CONFIG = {
         PLAGES: 0,
         METEO: 146047806,
         MAREES: 138428367,
-        RECOMMANDATIONS: 2049933385
+        RECOMMANDATIONS: 2049933385,
+        BARS: 1057932141,
+        RESTAURANTS: 251951681
     },
     GROIX_CENTER: [47.6389, -3.4523],
     ZOOM_LEVEL: 13
@@ -17,9 +19,15 @@ let markers = [];
 let plagesData = [];
 let mareesData = [];
 let meteoData = {};
+let barsData = [];
+let restaurantsData = [];
 let currentDateTime = new Date();
 let selectedDateTime = null;
 let userPosition = null;
+
+// Système multi-cartes
+let currentView = 'plages'; // 'plages', 'bars', 'restaurants'
+let selectedBeachMarker = null; // Pour garder le parasol sélectionné
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', init);
@@ -37,8 +45,11 @@ async function init() {
         // Initialiser l'UI
         initUI();
         
-        // Afficher les marqueurs
-        updateMarkers();
+        // Initialiser le menu de navigation
+        initNavMenu();
+        
+        // Afficher les marqueurs selon la vue actuelle
+        updateView();
         
         showLoading(false);
     } catch (error) {
@@ -213,12 +224,14 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 // Chargement des données depuis Google Sheets
 async function loadData() {
     try {
-        // Charger les 4 onglets en parallèle
-        const [plagesCSV, meteoCSV, mareesCSV, recoCSV] = await Promise.all([
+        // Charger les 6 onglets en parallèle
+        const [plagesCSV, meteoCSV, mareesCSV, recoCSV, barsCSV, restosCSV] = await Promise.all([
             fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.PLAGES}`).then(r => r.text()),
             fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.METEO}`).then(r => r.text()),
             fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.MAREES}`).then(r => r.text()),
-            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RECOMMANDATIONS}`).then(r => r.text())
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RECOMMANDATIONS}`).then(r => r.text()),
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.BARS}`).then(r => r.text()),
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RESTAURANTS}`).then(r => r.text())
         ]);
         
         // Parser les données
@@ -227,6 +240,8 @@ async function loadData() {
         meteoData = meteoArray[0] || {};
         mareesData = parseCSV(mareesCSV);
         const recoArray = parseCSV(recoCSV);
+        barsData = parseCSV(barsCSV);
+        restaurantsData = parseCSV(restosCSV);
         
         // Enrichir plagesData avec les couleurs des recommandations
         plagesData.forEach((plage, index) => {
@@ -236,7 +251,12 @@ async function loadData() {
             }
         });
         
-        console.log('Données chargées:', { plages: plagesData.length, marees: mareesData.length });
+        console.log('Données chargées:', { 
+            plages: plagesData.length, 
+            marees: mareesData.length,
+            bars: barsData.length,
+            restaurants: restaurantsData.length
+        });
         
     } catch (error) {
         console.error('Erreur de chargement:', error);
@@ -1008,6 +1028,263 @@ function createTideChartInCanvas(canvas, plage) {
         console.log('✓ Graphique créé avec barre horaire à', currentHour.toFixed(2), 'h');
     } catch (error) {
         console.error('Erreur:', error);
+    }
+}
+
+// ========================================
+// SYSTÈME MULTI-CARTES
+// ========================================
+
+// Initialiser le menu de navigation
+function initNavMenu() {
+    const menuBurger = document.getElementById('menu-burger');
+    const navMenu = document.getElementById('nav-menu');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const closeMenu = document.getElementById('close-menu');
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    // Ouvrir le menu
+    menuBurger.addEventListener('click', () => {
+        navMenu.classList.add('show');
+        menuOverlay.classList.add('show');
+    });
+    
+    // Fermer le menu
+    const closeMenuFn = () => {
+        navMenu.classList.remove('show');
+        menuOverlay.classList.remove('show');
+    };
+    
+    closeMenu.addEventListener('click', closeMenuFn);
+    menuOverlay.addEventListener('click', closeMenuFn);
+    
+    // Navigation entre vues
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const view = item.getAttribute('data-view');
+            switchView(view);
+            closeMenuFn();
+        });
+    });
+    
+    // Marquer la vue active
+    updateActiveNavItem();
+}
+
+// Mettre à jour l'item actif dans le menu
+function updateActiveNavItem() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        if (item.getAttribute('data-view') === currentView) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+// Changer de vue
+function switchView(view) {
+    currentView = view;
+    updateActiveNavItem();
+    updateView();
+}
+
+// Mettre à jour l'affichage selon la vue
+function updateView() {
+    // Supprimer tous les marqueurs
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    
+    // Masquer/afficher les éléments selon la vue
+    const legend = document.getElementById('legend');
+    const calendarPanel = document.getElementById('calendar-panel');
+    const datetimeDisplay = document.getElementById('datetime-display');
+    
+    switch(currentView) {
+        case 'plages':
+            legend.style.display = 'flex';
+            datetimeDisplay.classList.add('clickable');
+            updateMarkers(); // Fonction existante pour les plages
+            break;
+            
+        case 'bars':
+            legend.style.display = 'none';
+            datetimeDisplay.classList.remove('clickable');
+            calendarPanel.classList.add('hidden');
+            updateBarsMarkers();
+            break;
+            
+        case 'restaurants':
+            legend.style.display = 'none';
+            datetimeDisplay.classList.remove('clickable');
+            calendarPanel.classList.add('hidden');
+            updateRestaurantsMarkers();
+            break;
+    }
+    
+    // Ajouter le marqueur de géolocalisation s'il existe
+    if (userMarker) {
+        userMarker.addTo(map);
+    }
+    
+    // Ajouter le parasol sélectionné s'il existe (pour bars/restos)
+    if (selectedBeachMarker && currentView !== 'plages') {
+        selectedBeachMarker.addTo(map);
+    }
+}
+
+// Créer un marqueur cocktail pour les bars
+function createCocktailIcon() {
+    const cocktail = `
+        <svg width="32" height="32" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="20" cy="38" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>
+            <rect x="18" y="25" width="4" height="10" fill="#666" rx="1"/>
+            <ellipse cx="20" cy="35" rx="6" ry="2" fill="#888"/>
+            <path d="M 8 8 L 20 25 L 32 8 Z" fill="#4db8ff" fill-opacity="0.7" stroke="#1e88e5" stroke-width="2"/>
+            <path d="M 12 10 L 18 20 L 14 12 Z" fill="rgba(255,255,255,0.4)"/>
+            <line x1="8" y1="8" x2="32" y2="8" stroke="#1e88e5" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="24" y1="6" x2="24" y2="14" stroke="#ff6b6b" stroke-width="1.5"/>
+            <path d="M 20 6 L 24 6 L 28 6 L 24 10 Z" fill="#ff6b6b"/>
+        </svg>
+    `;
+    
+    return L.divIcon({
+        html: cocktail,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+}
+
+// Créer un marqueur couverts pour les restaurants
+function createCouvertsIcon() {
+    const couverts = `
+        <svg width="32" height="32" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="20" cy="38" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>
+            <g>
+                <rect x="13" y="20" width="2" height="15" fill="#555" rx="1"/>
+                <rect x="11" y="8" width="1.5" height="13" fill="#555" rx="0.5"/>
+                <rect x="13" y="8" width="1.5" height="13" fill="#555" rx="0.5"/>
+                <rect x="15" y="8" width="1.5" height="13" fill="#555" rx="0.5"/>
+                <rect x="11" y="18" width="6" height="3" fill="#555" rx="1"/>
+            </g>
+            <g>
+                <rect x="25" y="20" width="2" height="15" fill="#555" rx="1"/>
+                <path d="M 23 8 L 29 8 L 27 20 L 25 20 Z" fill="#888" stroke="#555" stroke-width="0.5"/>
+                <path d="M 25 10 L 26 10 L 25.5 18" fill="rgba(255,255,255,0.3)" stroke="none"/>
+            </g>
+            <ellipse cx="20" cy="36" rx="10" ry="3" fill="none" stroke="#ccc" stroke-width="1.5"/>
+        </svg>
+    `;
+    
+    return L.divIcon({
+        html: couverts,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
+}
+
+// Afficher les marqueurs des bars
+function updateBarsMarkers() {
+    barsData.forEach(bar => {
+        // Filtrer selon la colonne "Validé"
+        if (bar.Valide !== '1' && bar.Validé !== '1') return;
+        
+        const lat = parseFloat(bar.Latitude || bar.latitude);
+        const lon = parseFloat(bar.Longitude || bar.longitude);
+        
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+        
+        const icon = createCocktailIcon();
+        const marker = L.marker([lat, lon], { icon })
+            .addTo(map)
+            .bindPopup(createSimplePopup(bar, 'bar'));
+        
+        markers.push(marker);
+    });
+    
+    console.log(`${markers.length} bars affichés`);
+}
+
+// Afficher les marqueurs des restaurants
+function updateRestaurantsMarkers() {
+    restaurantsData.forEach(restaurant => {
+        // Filtrer selon la colonne "Validé"
+        if (restaurant.Valide !== '1' && restaurant.Validé !== '1') return;
+        
+        const lat = parseFloat(restaurant.Latitude || restaurant.latitude);
+        const lon = parseFloat(restaurant.Longitude || restaurant.longitude);
+        
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+        
+        const icon = createCouvertsIcon();
+        const marker = L.marker([lat, lon], { icon })
+            .addTo(map)
+            .bindPopup(createSimplePopup(restaurant, 'restaurant'));
+        
+        markers.push(marker);
+    });
+    
+    console.log(`${markers.length} restaurants affichés`);
+}
+
+// Créer un popup simple pour bars/restaurants
+function createSimplePopup(lieu, type) {
+    const nom = lieu.Nom || lieu.nom || 'Lieu';
+    const adresse = lieu.Adresse || lieu.adresse || '';
+    const lat = parseFloat(lieu.Latitude || lieu.latitude);
+    const lon = parseFloat(lieu.Longitude || lieu.longitude);
+    
+    const icon = type === 'bar' ? '🍸' : '🍴';
+    
+    const content = `
+        <div style="min-width: 200px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <span style="font-size: 24px;">${icon}</span>
+                <strong style="font-size: 16px;">${nom}</strong>
+            </div>
+            
+            ${adresse ? `<p style="margin: 8px 0; color: #666; font-size: 14px;">📍 ${adresse}</p>` : ''}
+            
+            <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" 
+               target="_blank"
+               style="
+                   display: block;
+                   background: #1e88e5;
+                   color: white;
+                   text-decoration: none;
+                   padding: 10px 16px;
+                   border-radius: 8px;
+                   text-align: center;
+                   margin-top: 12px;
+                   font-size: 14px;
+                   font-weight: 600;
+               ">
+                📍 Ouvrir dans Google Maps
+            </a>
+        </div>
+    `;
+    
+    return content;
+}
+
+// Charger les données des bars et restaurants
+async function loadBarsRestaurants() {
+    try {
+        const [barsCSV, restosCSV] = await Promise.all([
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.BARS}`).then(r => r.text()),
+            fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RESTAURANTS}`).then(r => r.text())
+        ]);
+        
+        barsData = parseCSV(barsCSV);
+        restaurantsData = parseCSV(restosCSV);
+        
+        console.log('Données chargées:', { bars: barsData.length, restaurants: restaurantsData.length });
+    } catch (error) {
+        console.error('Erreur de chargement bars/restaurants:', error);
     }
 }
 
