@@ -1190,13 +1190,17 @@ function createCouvertsIcon() {
 // Afficher les marqueurs des bars
 function updateBarsMarkers() {
     barsData.forEach(bar => {
-        // Filtrer selon la colonne "Validé"
-        if (bar.Valide !== '1' && bar.Validé !== '1') return;
+        // Filtrer selon la colonne "Validé" - accepter plusieurs variantes
+        const valide = bar.Valide || bar.Validé || bar.validé || bar.valide || bar.VALIDE;
+        if (valide !== '1' && valide !== 1) return;
         
-        const lat = parseFloat(bar.Latitude || bar.latitude);
-        const lon = parseFloat(bar.Longitude || bar.longitude);
+        const lat = parseFloat(bar.Latitude || bar.latitude || bar.LATITUDE);
+        const lon = parseFloat(bar.Longitude || bar.longitude || bar.LONGITUDE);
         
-        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) {
+            console.warn('Coordonnées invalides pour bar:', bar);
+            return;
+        }
         
         const icon = createCocktailIcon();
         const marker = L.marker([lat, lon], { icon })
@@ -1206,19 +1210,23 @@ function updateBarsMarkers() {
         markers.push(marker);
     });
     
-    console.log(`${markers.length} bars affichés`);
+    console.log(`${markers.length} bars affichés sur ${barsData.length} total`);
 }
 
 // Afficher les marqueurs des restaurants
 function updateRestaurantsMarkers() {
     restaurantsData.forEach(restaurant => {
-        // Filtrer selon la colonne "Validé"
-        if (restaurant.Valide !== '1' && restaurant.Validé !== '1') return;
+        // Filtrer selon la colonne "Validé" - accepter plusieurs variantes
+        const valide = restaurant.Valide || restaurant.Validé || restaurant.validé || restaurant.valide || restaurant.VALIDE;
+        if (valide !== '1' && valide !== 1) return;
         
-        const lat = parseFloat(restaurant.Latitude || restaurant.latitude);
-        const lon = parseFloat(restaurant.Longitude || restaurant.longitude);
+        const lat = parseFloat(restaurant.Latitude || restaurant.latitude || restaurant.LATITUDE);
+        const lon = parseFloat(restaurant.Longitude || restaurant.longitude || restaurant.LONGITUDE);
         
-        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) {
+            console.warn('Coordonnées invalides pour restaurant:', restaurant);
+            return;
+        }
         
         const icon = createCouvertsIcon();
         const marker = L.marker([lat, lon], { icon })
@@ -1228,15 +1236,15 @@ function updateRestaurantsMarkers() {
         markers.push(marker);
     });
     
-    console.log(`${markers.length} restaurants affichés`);
+    console.log(`${markers.length} restaurants affichés sur ${restaurantsData.length} total`);
 }
 
 // Créer un popup simple pour bars/restaurants
 function createSimplePopup(lieu, type) {
-    const nom = lieu.Nom || lieu.nom || 'Lieu';
-    const adresse = lieu.Adresse || lieu.adresse || '';
-    const lat = parseFloat(lieu.Latitude || lieu.latitude);
-    const lon = parseFloat(lieu.Longitude || lieu.longitude);
+    const nom = lieu.Nom || lieu.nom || lieu.NOM || 'Lieu';
+    const adresse = lieu.Adresse || lieu.adresse || lieu.ADRESSE || '';
+    const lat = parseFloat(lieu.Latitude || lieu.latitude || lieu.LATITUDE);
+    const lon = parseFloat(lieu.Longitude || lieu.longitude || lieu.LONGITUDE);
     
     const icon = type === 'bar' ? '🍸' : '🍴';
     
