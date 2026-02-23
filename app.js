@@ -1043,14 +1043,23 @@ function initNavMenu() {
     const closeMenu = document.getElementById('close-menu');
     const navItems = document.querySelectorAll('.nav-item');
     
+    console.log('Initialisation menu:', { menuBurger, navMenu, menuOverlay });
+    
+    if (!menuBurger || !navMenu || !menuOverlay) {
+        console.error('Éléments du menu non trouvés !');
+        return;
+    }
+    
     // Ouvrir le menu
     menuBurger.addEventListener('click', () => {
+        console.log('Clic sur burger - Ouverture menu');
         navMenu.classList.add('show');
         menuOverlay.classList.add('show');
     });
     
     // Fermer le menu
     const closeMenuFn = () => {
+        console.log('Fermeture menu');
         navMenu.classList.remove('show');
         menuOverlay.classList.remove('show');
     };
@@ -1062,6 +1071,7 @@ function initNavMenu() {
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const view = item.getAttribute('data-view');
+            console.log('Navigation vers:', view);
             switchView(view);
             closeMenuFn();
         });
@@ -1069,6 +1079,8 @@ function initNavMenu() {
     
     // Marquer la vue active
     updateActiveNavItem();
+    
+    console.log('Menu initialisé avec succès');
 }
 
 // Mettre à jour l'item actif dans le menu
