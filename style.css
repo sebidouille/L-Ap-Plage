@@ -23,7 +23,36 @@ body {
     background: var(--ocean-blue);
 }
 
-/* En-tête */
+/* Bouton Menu Burger - En haut à gauche de l'écran */
+.menu-burger {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 0.3s, transform 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+.menu-burger:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+}
+
+.menu-burger:active {
+    transform: scale(0.95);
+}
+
+/* En-tête avec date/heure (centré) */
 #header {
     position: fixed;
     top: 10px;
@@ -38,34 +67,6 @@ body {
     z-index: 1000;
     border-radius: 20px;
     pointer-events: none;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* Bouton Menu Burger */
-.menu-burger {
-    background: rgba(255, 255, 255, 0.6);
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    pointer-events: auto;
-    transition: background 0.3s, transform 0.2s;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.menu-burger:hover {
-    background: rgba(255, 255, 255, 0.9);
-    transform: scale(1.05);
-}
-
-.menu-burger:active {
-    transform: scale(0.95);
 }
 
 /* Menu de Navigation */
