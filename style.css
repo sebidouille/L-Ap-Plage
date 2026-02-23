@@ -23,10 +23,10 @@ body {
     background: var(--ocean-blue);
 }
 
-/* Bouton Menu Burger - En haut à gauche de l'écran */
+/* Bouton Menu Burger - En haut à gauche, sous le zoom */
 .menu-burger {
     position: fixed;
-    top: 15px;
+    top: 85px;
     left: 15px;
     background: rgba(255, 255, 255, 0.9);
     border: none;
