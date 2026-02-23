@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plagegeomatix-v1';
+const CACHE_NAME = 'applage-v2';
 const urlsToCache = [
   '/',
   '/index.html',
