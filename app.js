@@ -620,30 +620,39 @@ function createCustomIcon(color, selected = false) {
     };
     
     const borderColor = selected ? '#9c27b0' : 'white';
-    const borderWidth = selected ? '3' : '2';
+    const borderWidth = selected ? '2.5' : '1.5';
     
     const parasol = `
-        <svg width="32" height="32" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <g transform="rotate(15, 20, 28)">
+        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <g transform="rotate(15, 16, 20)">
                 <!-- Ombre au sol -->
-                <ellipse cx="20" cy="38" rx="8" ry="2" fill="rgba(0,0,0,0.15)"/>
+                <ellipse cx="16" cy="30" rx="6" ry="1.5" fill="rgba(0,0,0,0.2)"/>
                 
                 <!-- Mât du parasol -->
-                <rect x="18" y="20" width="4" height="17" fill="#8B7355" rx="1"/>
+                <line x1="16" y1="14" x2="16" y2="29" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>
                 
-                <!-- Base du parasol -->
-                <rect x="17" y="35" width="6" height="3" fill="#A0826D" rx="1"/>
+                <!-- Pointe en haut du mât -->
+                <circle cx="16" cy="3" r="1.2" fill="#666"/>
                 
-                <!-- Toile du parasol (demi-cercle) -->
-                <path d="M 8 20 Q 8 8, 20 8 Q 32 8, 32 20 Z" 
+                <!-- Toile du parasol - forme en arc -->
+                <path d="M 4 14 Q 4 4, 16 2 Q 28 4, 28 14" 
                       fill="${colors[color]}" 
                       stroke="${borderColor}" 
-                      stroke-width="${borderWidth}"/>
+                      stroke-width="${borderWidth}"
+                      stroke-linejoin="round"/>
                 
-                <!-- Segments pour donner du relief -->
-                <path d="M 20 8 L 20 20" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
-                <path d="M 14 11 L 17 20" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
-                <path d="M 26 11 L 23 20" stroke="rgba(0,0,0,0.1)" stroke-width="1"/>
+                <!-- Segments blancs/noirs alternés pour le relief -->
+                <path d="M 16 2 L 16 14" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
+                <path d="M 11 4 L 12 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
+                <path d="M 21 4 L 20 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
+                <path d="M 7 7 L 9 14" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                <path d="M 25 7 L 23 14" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                
+                <!-- Bords sombres pour définir les segments -->
+                <path d="M 4 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
+                <path d="M 28 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
+                <path d="M 11 4 L 12 14" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
+                <path d="M 21 4 L 20 14" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
             </g>
         </svg>
     `;
