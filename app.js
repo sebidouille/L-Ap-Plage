@@ -1055,6 +1055,8 @@ function initNavMenu() {
         console.log('Clic sur burger - Ouverture menu');
         navMenu.classList.add('show');
         menuOverlay.classList.add('show');
+        console.log('Classes ajoutées - navMenu:', navMenu.className, 'overlay:', menuOverlay.className);
+        console.log('Transform du menu:', window.getComputedStyle(navMenu).transform);
     });
     
     // Fermer le menu
