@@ -79,12 +79,6 @@ body {
     margin-top: 2px;
 }
 
-.calendar-icon {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-}
-
 /* Carte */
 #map {
     position: absolute;
