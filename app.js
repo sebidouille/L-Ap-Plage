@@ -1260,17 +1260,37 @@ function createSimplePopup(lieu, type) {
     const lat = parseFloat(lieu.Latitude || lieu.latitude || lieu.LATITUDE);
     const lon = parseFloat(lieu.Longitude || lieu.longitude || lieu.LONGITUDE);
     
+    // Récupérer l'URL depuis la colonne G (index 6 car 0-based)
+    // Essayer différentes variantes de nom de colonne
+    const url = lieu.URL || lieu.url || lieu.Url || lieu.Site || lieu.site || lieu.SITE || lieu.Web || lieu.web;
+    
     const icon = type === 'bar' ? '🍸' : '🍴';
     
-    const content = `
-        <div style="min-width: 200px;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                <span style="font-size: 24px;">${icon}</span>
-                <strong style="font-size: 16px;">${nom}</strong>
-            </div>
-            
-            ${adresse ? `<p style="margin: 8px 0; color: #666; font-size: 14px;">📍 ${adresse}</p>` : ''}
-            
+    // Générer le bouton approprié selon qu'on a une URL ou pas
+    let buttonHTML = '';
+    if (url && url.trim() !== '') {
+        // Si on a une URL, bouton vers le site
+        buttonHTML = `
+            <a href="${url.startsWith('http') ? url : 'https://' + url}" 
+               target="_blank"
+               style="
+                   display: block;
+                   background: #1e88e5;
+                   color: white;
+                   text-decoration: none;
+                   padding: 10px 16px;
+                   border-radius: 8px;
+                   text-align: center;
+                   margin-top: 12px;
+                   font-size: 14px;
+                   font-weight: 600;
+               ">
+                🌐 Voir le site
+            </a>
+        `;
+    } else {
+        // Sinon, fallback sur Google Maps
+        buttonHTML = `
             <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" 
                target="_blank"
                style="
@@ -1285,8 +1305,21 @@ function createSimplePopup(lieu, type) {
                    font-size: 14px;
                    font-weight: 600;
                ">
-                📍 Ouvrir dans Google Maps
+                📍 Voir sur la carte
             </a>
+        `;
+    }
+    
+    const content = `
+        <div style="min-width: 200px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <span style="font-size: 24px;">${icon}</span>
+                <strong style="font-size: 16px;">${nom}</strong>
+            </div>
+            
+            ${adresse ? `<p style="margin: 8px 0; color: #666; font-size: 14px;">📍 ${adresse}</p>` : ''}
+            
+            ${buttonHTML}
         </div>
     `;
     
