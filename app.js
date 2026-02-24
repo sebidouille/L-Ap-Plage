@@ -1255,6 +1255,10 @@ function updateRestaurantsMarkers() {
 
 // Créer un popup enrichi pour bars/restaurants
 function createSimplePopup(lieu, type) {
+    // Debug : afficher toutes les propriétés disponibles
+    console.log('Données lieu:', lieu);
+    console.log('Clés disponibles:', Object.keys(lieu));
+    
     const nom = lieu.Nom || lieu.nom || lieu.NOM || 'Lieu';
     const adresse = lieu.Adresse || lieu.adresse || lieu.ADRESSE || '';
     
@@ -1268,11 +1272,18 @@ function createSimplePopup(lieu, type) {
     // Téléphone
     const telephone = lieu.Téléphone || lieu.Telephone || lieu.telephone || lieu.Tel || lieu.tel || lieu.TEL || '';
     
-    // Description
-    const description = lieu.Description || lieu.description || lieu.DESCRIPTION || '';
+    // Description - essayer toutes les variantes possibles
+    const description = lieu.Description || lieu.description || lieu.DESCRIPTION || 
+                       lieu.Desc || lieu.desc || lieu.DESC || '';
     
-    // Photo
-    const photoFilename = lieu.Photo || lieu.photo || lieu.PHOTO || '';
+    console.log('Description trouvée:', description);
+    
+    // Photo - essayer toutes les variantes possibles
+    const photoFilename = lieu.Photo || lieu.photo || lieu.PHOTO || 
+                         lieu.Image || lieu.image || lieu.IMAGE || '';
+    
+    console.log('Photo trouvée:', photoFilename);
+    
     const photoUrl = photoFilename ? `images/${photoFilename}` : '';
     
     const icon = type === 'bar' ? '🍸' : '🍴';
