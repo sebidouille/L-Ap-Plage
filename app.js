@@ -1253,65 +1253,73 @@ function updateRestaurantsMarkers() {
     console.log(`${markers.length} restaurants affichés sur ${restaurantsData.length} total`);
 }
 
-// Créer un popup simple pour bars/restaurants
+// Créer un popup enrichi pour bars/restaurants
 function createSimplePopup(lieu, type) {
     const nom = lieu.Nom || lieu.nom || lieu.NOM || 'Lieu';
     const adresse = lieu.Adresse || lieu.adresse || lieu.ADRESSE || '';
-    const lat = parseFloat(lieu.Latitude || lieu.latitude || lieu.LATITUDE);
-    const lon = parseFloat(lieu.Longitude || lieu.longitude || lieu.LONGITUDE);
     
-    // Récupérer l'URL depuis la colonne G (index 6 car 0-based)
-    // Essayer différentes variantes de nom de colonne
-    const url = lieu.URL || lieu.url || lieu.Url || lieu.Site || lieu.site || lieu.SITE || lieu.Web || lieu.web;
+    // URL du site web
+    const url = lieu.URL || lieu.url || lieu.Url || lieu.Site || lieu.site || lieu.SITE || lieu.Web || lieu.web || '';
+    
+    // Horaires (avec | comme séparateur pour les sauts de ligne)
+    const horairesRaw = lieu.Horaires || lieu.horaires || lieu.HORAIRES || '';
+    const horaires = horairesRaw ? horairesRaw.split('|').map(h => h.trim()).join('<br>') : '';
+    
+    // Téléphone
+    const telephone = lieu.Téléphone || lieu.Telephone || lieu.telephone || lieu.Tel || lieu.tel || lieu.TEL || '';
+    
+    // Description
+    const description = lieu.Description || lieu.description || lieu.DESCRIPTION || '';
+    
+    // Photo
+    const photoFilename = lieu.Photo || lieu.photo || lieu.PHOTO || '';
+    const photoUrl = photoFilename ? `images/${photoFilename}` : '';
     
     const icon = type === 'bar' ? '🍸' : '🍴';
     
-    // Générer le bouton approprié selon qu'on a une URL ou pas
-    let buttonHTML = '';
-    if (url && url.trim() !== '') {
-        // Si on a une URL, bouton vers le site
-        buttonHTML = `
-            <a href="${url.startsWith('http') ? url : 'https://' + url}" 
-               target="_blank"
-               style="
-                   display: block;
-                   background: #1e88e5;
-                   color: white;
-                   text-decoration: none;
-                   padding: 10px 16px;
-                   border-radius: 8px;
-                   text-align: center;
-                   margin-top: 12px;
-                   font-size: 14px;
-                   font-weight: 600;
-               ">
-                🌐 Voir le site
-            </a>
-        `;
-    } else {
-        // Sinon, fallback sur Google Maps
-        buttonHTML = `
-            <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" 
-               target="_blank"
-               style="
-                   display: block;
-                   background: #1e88e5;
-                   color: white;
-                   text-decoration: none;
-                   padding: 10px 16px;
-                   border-radius: 8px;
-                   text-align: center;
-                   margin-top: 12px;
-                   font-size: 14px;
-                   font-weight: 600;
-               ">
-                📍 Voir sur la carte
-            </a>
-        `;
-    }
+    // Générer le HTML de la photo si elle existe
+    const photoHTML = photoUrl ? `<img src="${photoUrl}" alt="${nom}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">` : '';
+    
+    // Générer le bouton site web si URL existe
+    const siteButton = url && url.trim() !== '' ? `
+        <a href="${url.startsWith('http') ? url : 'https://' + url}" 
+           target="_blank"
+           style="
+               display: inline-block;
+               background: #1e88e5;
+               color: white;
+               text-decoration: none;
+               padding: 8px 16px;
+               border-radius: 8px;
+               font-size: 13px;
+               font-weight: 600;
+               margin-right: 8px;
+           ">
+            🌐 Site web
+        </a>
+    ` : '';
+    
+    // Générer le bouton téléphone si numéro existe
+    const telButton = telephone && telephone.trim() !== '' ? `
+        <a href="tel:${telephone.replace(/\s/g, '')}" 
+           style="
+               display: inline-block;
+               background: #4caf50;
+               color: white;
+               text-decoration: none;
+               padding: 8px 16px;
+               border-radius: 8px;
+               font-size: 13px;
+               font-weight: 600;
+           ">
+            📞 Appeler
+        </a>
+    ` : '';
     
     const content = `
-        <div style="min-width: 200px;">
+        <div style="min-width: 220px; max-width: 280px;">
+            ${photoHTML}
+            
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
                 <span style="font-size: 24px;">${icon}</span>
                 <strong style="font-size: 16px;">${nom}</strong>
@@ -1319,7 +1327,23 @@ function createSimplePopup(lieu, type) {
             
             ${adresse ? `<p style="margin: 8px 0; color: #666; font-size: 14px;">📍 ${adresse}</p>` : ''}
             
-            ${buttonHTML}
+            ${horaires ? `
+                <div style="margin: 12px 0; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+                    <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px;">🕒 Horaires</div>
+                    <div style="font-size: 12px; color: #555; line-height: 1.6;">${horaires}</div>
+                </div>
+            ` : ''}
+            
+            ${telephone ? `<p style="margin: 8px 0; font-size: 14px; color: #555;">📞 ${telephone}</p>` : ''}
+            
+            ${description ? `<p style="margin: 12px 0; font-size: 13px; color: #666; font-style: italic;">${description}</p>` : ''}
+            
+            ${siteButton || telButton ? `
+                <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${siteButton}
+                    ${telButton}
+                </div>
+            ` : ''}
         </div>
     `;
     
