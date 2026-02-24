@@ -1148,15 +1148,18 @@ function updateView() {
 }
 
 // Créer un marqueur cocktail pour les bars
-function createCocktailIcon() {
+function createCocktailIcon(selected = false) {
+    const borderColor = selected ? '#9c27b0' : '#1e88e5';
+    const borderWidth = selected ? '3' : '2';
+    
     const cocktail = `
         <svg width="32" height="32" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="20" cy="38" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>
             <rect x="18" y="25" width="4" height="10" fill="#666" rx="1"/>
             <ellipse cx="20" cy="35" rx="6" ry="2" fill="#888"/>
-            <path d="M 8 8 L 20 25 L 32 8 Z" fill="#4db8ff" fill-opacity="0.7" stroke="#1e88e5" stroke-width="2"/>
+            <path d="M 8 8 L 20 25 L 32 8 Z" fill="#4db8ff" fill-opacity="0.7" stroke="${borderColor}" stroke-width="${borderWidth}"/>
             <path d="M 12 10 L 18 20 L 14 12 Z" fill="rgba(255,255,255,0.4)"/>
-            <line x1="8" y1="8" x2="32" y2="8" stroke="#1e88e5" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="8" y1="8" x2="32" y2="8" stroke="${borderColor}" stroke-width="2.5" stroke-linecap="round"/>
             <line x1="24" y1="6" x2="24" y2="14" stroke="#ff6b6b" stroke-width="1.5"/>
             <path d="M 20 6 L 24 6 L 28 6 L 24 10 Z" fill="#ff6b6b"/>
         </svg>
@@ -1172,23 +1175,26 @@ function createCocktailIcon() {
 }
 
 // Créer un marqueur couverts pour les restaurants
-function createCouvertsIcon() {
+function createCouvertsIcon(selected = false) {
+    const borderColor = selected ? '#9c27b0' : '#555';
+    const borderWidth = selected ? '1.2' : '0.8';
+    
     const couverts = `
         <svg width="32" height="32" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="20" cy="38" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>
             <g>
-                <rect x="13" y="20" width="2" height="15" fill="#555" rx="1"/>
-                <rect x="11" y="8" width="1.5" height="13" fill="#555" rx="0.5"/>
-                <rect x="13" y="8" width="1.5" height="13" fill="#555" rx="0.5"/>
-                <rect x="15" y="8" width="1.5" height="13" fill="#555" rx="0.5"/>
-                <rect x="11" y="18" width="6" height="3" fill="#555" rx="1"/>
+                <rect x="13" y="20" width="2" height="15" fill="#555" rx="1" stroke="${borderColor}" stroke-width="${borderWidth}"/>
+                <rect x="11" y="8" width="1.5" height="13" fill="#555" rx="0.5" stroke="${borderColor}" stroke-width="${borderWidth}"/>
+                <rect x="13" y="8" width="1.5" height="13" fill="#555" rx="0.5" stroke="${borderColor}" stroke-width="${borderWidth}"/>
+                <rect x="15" y="8" width="1.5" height="13" fill="#555" rx="0.5" stroke="${borderColor}" stroke-width="${borderWidth}"/>
+                <rect x="11" y="18" width="6" height="3" fill="#555" rx="1" stroke="${borderColor}" stroke-width="${borderWidth}"/>
             </g>
             <g>
-                <rect x="25" y="20" width="2" height="15" fill="#555" rx="1"/>
-                <path d="M 23 8 L 29 8 L 27 20 L 25 20 Z" fill="#888" stroke="#555" stroke-width="0.5"/>
+                <rect x="25" y="20" width="2" height="15" fill="#555" rx="1" stroke="${borderColor}" stroke-width="${borderWidth}"/>
+                <path d="M 23 8 L 29 8 L 27 20 L 25 20 Z" fill="#888" stroke="${borderColor}" stroke-width="${borderWidth}"/>
                 <path d="M 25 10 L 26 10 L 25.5 18" fill="rgba(255,255,255,0.3)" stroke="none"/>
             </g>
-            <ellipse cx="20" cy="36" rx="10" ry="3" fill="none" stroke="#ccc" stroke-width="1.5"/>
+            <ellipse cx="20" cy="36" rx="10" ry="3" fill="none" stroke="${borderColor}" stroke-width="1.5"/>
         </svg>
     `;
     
@@ -1204,7 +1210,7 @@ function createCouvertsIcon() {
 // Afficher les marqueurs des bars
 function updateBarsMarkers() {
     barsData.forEach(bar => {
-        // Filtrer selon la colonne "Validé" - accepter plusieurs variantes
+        // Filtrer selon la colonne "Validé"
         const valide = bar.Valide || bar.Validé || bar.validé || bar.valide || bar.VALIDE;
         if (valide !== '1' && valide !== 1) return;
         
@@ -1216,11 +1222,38 @@ function updateBarsMarkers() {
             return;
         }
         
-        const icon = createCocktailIcon();
+        const icon = createCocktailIcon(false);
         const marker = L.marker([lat, lon], { icon })
             .addTo(map)
-            .bindPopup(createSimplePopup(bar, 'bar'));
+            .bindPopup(() => createSimplePopup(bar, 'bar'), {
+                autoPan: false,
+                closeButton: false
+            });
         
+        // Changer l'icône au clic
+        marker.on('click', function() {
+            // Réinitialiser l'ancien marqueur sélectionné
+            if (selectedMarker && selectedMarker !== marker) {
+                const oldType = selectedMarker.markerType;
+                const oldIcon = oldType === 'bar' ? createCocktailIcon(false) : createCouvertsIcon(false);
+                selectedMarker.setIcon(oldIcon);
+            }
+            
+            // Mettre le nouveau marqueur en sélectionné
+            marker.setIcon(createCocktailIcon(true));
+            selectedMarker = marker;
+        });
+        
+        // Rendre le popup déplaçable
+        marker.on('popupopen', function() {
+            const popup = marker.getPopup();
+            const popupElement = popup.getElement();
+            if (popupElement) {
+                makePopupDraggable(popupElement, marker);
+            }
+        });
+        
+        marker.markerType = 'bar';
         markers.push(marker);
     });
     
@@ -1230,7 +1263,7 @@ function updateBarsMarkers() {
 // Afficher les marqueurs des restaurants
 function updateRestaurantsMarkers() {
     restaurantsData.forEach(restaurant => {
-        // Filtrer selon la colonne "Validé" - accepter plusieurs variantes
+        // Filtrer selon la colonne "Validé"
         const valide = restaurant.Valide || restaurant.Validé || restaurant.validé || restaurant.valide || restaurant.VALIDE;
         if (valide !== '1' && valide !== 1) return;
         
@@ -1242,15 +1275,112 @@ function updateRestaurantsMarkers() {
             return;
         }
         
-        const icon = createCouvertsIcon();
+        const icon = createCouvertsIcon(false);
         const marker = L.marker([lat, lon], { icon })
             .addTo(map)
-            .bindPopup(createSimplePopup(restaurant, 'restaurant'));
+            .bindPopup(() => createSimplePopup(restaurant, 'restaurant'), {
+                autoPan: false,
+                closeButton: false
+            });
         
+        // Changer l'icône au clic
+        marker.on('click', function() {
+            // Réinitialiser l'ancien marqueur sélectionné
+            if (selectedMarker && selectedMarker !== marker) {
+                const oldType = selectedMarker.markerType;
+                const oldIcon = oldType === 'bar' ? createCocktailIcon(false) : createCouvertsIcon(false);
+                selectedMarker.setIcon(oldIcon);
+            }
+            
+            // Mettre le nouveau marqueur en sélectionné
+            marker.setIcon(createCouvertsIcon(true));
+            selectedMarker = marker;
+        });
+        
+        // Rendre le popup déplaçable
+        marker.on('popupopen', function() {
+            const popup = marker.getPopup();
+            const popupElement = popup.getElement();
+            if (popupElement) {
+                makePopupDraggable(popupElement, marker);
+            }
+        });
+        
+        marker.markerType = 'restaurant';
         markers.push(marker);
     });
     
     console.log(`${markers.length} restaurants affichés sur ${restaurantsData.length} total`);
+}
+
+// Rendre un popup déplaçable (pour bars et restaurants)
+function makePopupDraggable(popupElement, marker) {
+    let isDragging = false;
+    let startX, startY;
+    let scrollLeft, scrollTop;
+    
+    const popupContent = popupElement.querySelector('.leaflet-popup-content-wrapper');
+    
+    if (popupContent) {
+        popupContent.style.cursor = 'grab';
+        
+        popupContent.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            popupContent.style.cursor = 'grabbing';
+            startX = e.clientX;
+            startY = e.clientY;
+            const mapCenter = map.getCenter();
+            scrollLeft = mapCenter.lng;
+            scrollTop = mapCenter.lat;
+            e.preventDefault();
+        });
+        
+        popupContent.addEventListener('touchstart', function(e) {
+            isDragging = true;
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            const mapCenter = map.getCenter();
+            scrollLeft = mapCenter.lng;
+            scrollTop = mapCenter.lat;
+        }, { passive: true });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            const scale = 0.0001;
+            const newLng = scrollLeft - (dx * scale);
+            const newLat = scrollTop + (dy * scale);
+            
+            map.panTo([newLat, newLng], { animate: false });
+        });
+        
+        document.addEventListener('touchmove', function(e) {
+            if (!isDragging) return;
+            
+            const touch = e.touches[0];
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+            
+            const scale = 0.0001;
+            const newLng = scrollLeft - (dx * scale);
+            const newLat = scrollTop + (dy * scale);
+            
+            map.panTo([newLat, newLng], { animate: false });
+        }, { passive: true });
+        
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+            if (popupContent) popupContent.style.cursor = 'grab';
+        });
+        
+        document.addEventListener('touchend', function() {
+            isDragging = false;
+        });
+    }
 }
 
 // Créer un popup enrichi pour bars/restaurants
@@ -1274,6 +1404,7 @@ function createSimplePopup(lieu, type) {
     
     // Description - essayer toutes les variantes possibles
     const description = lieu.Description || lieu.description || lieu.DESCRIPTION || 
+                       lieu.Desciption || lieu.desciption || lieu.DESCIPTION || // Avec typo courante
                        lieu.Desc || lieu.desc || lieu.DESC || '';
     
     console.log('Description trouvée:', description);
