@@ -66,8 +66,8 @@ function initMap() {
         attributionControl: false
     }).setView(CONFIG.GROIX_CENTER, CONFIG.ZOOM_LEVEL);
     
-    // Mapbox - Style personnalisé de rouxseb (sans POI commerces)
-    L.tileLayer('https://api.mapbox.com/styles/v1/rouxseb/cmm20rkrd004w01s7clxx5kgk/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xeG9qY2cwMTZuMnJyMGd5MmR0YjJ3In0.dY1CgFEFWuvuG7UjzaHzcw', {
+    // Mapbox - Style personnalisé avec Default public token
+    L.tileLayer('https://api.mapbox.com/styles/v1/rouxseb/cmm20rkrd004w01s7clxx5kgk/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xd3dvcTAwMTZzMnJzZXdyYXFpMjBvIn0.Tq3uFh1jH5n-7OXcfm7MtQ', {
         attribution: '© <a href="https://www.mapbox.com/">Mapbox</a>',
         tileSize: 512,
         zoomOffset: -1,
@@ -75,7 +75,7 @@ function initMap() {
         minZoom: 11
     }).addTo(map);
     
-    console.log('Carte Mapbox style personnalisé initialisée');
+    console.log('Carte Mapbox style personnalisé (default token)');
     
     // Ajouter le bouton de géolocalisation
     addGeolocationButton();
