@@ -66,10 +66,16 @@ function initMap() {
         attributionControl: false
     }).setView(CONFIG.GROIX_CENTER, CONFIG.ZOOM_LEVEL);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Mapbox - Style "light" sans POI (commerces cachés) - Token sécurisé
+    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xeG9qY2cwMTZuMnJyMGd5MmR0YjJ3In0.dY1CgFEFWuvuG7UjzaHzcw', {
+        attribution: '© <a href="https://www.mapbox.com/">Mapbox</a>',
+        tileSize: 512,
+        zoomOffset: -1,
         maxZoom: 18,
         minZoom: 11
     }).addTo(map);
+    
+    console.log('Carte Mapbox light initialisée (sans POI)');
     
     // Ajouter le bouton de géolocalisation
     addGeolocationButton();
