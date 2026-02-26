@@ -27,8 +27,11 @@ let currentDateTime = new Date();
 let selectedDateTime = null;
 let userPosition = null;
 
-// Système multi-cartes
-let currentView = 'plages';
+// Toggles bars/restaurants
+let showBars = false;
+let showRestaurants = false;
+let barsMarkers = [];
+let restaurantsMarkers = [];
 let selectedBeachMarker = null;
 
 // Initialisation
@@ -41,7 +44,7 @@ async function init() {
         await loadData();
         initUI();
         initNavMenu();
-        updateView();
+        updateMarkers();
         showLoading(false);
     } catch (error) {
         console.error('Erreur d\'initialisation:', error);
@@ -579,7 +582,7 @@ function createTideChartInCanvas(canvas, plage) {
 }
 
 // ========================================
-// SYSTÈME MULTI-CARTES
+// MENU BURGER - TOGGLES
 // ========================================
 
 function initNavMenu() {
@@ -592,47 +595,81 @@ function initNavMenu() {
     const closeMenuFn = () => { navMenu.classList.remove('show'); menuOverlay.classList.remove('show'); };
     closeMenu.addEventListener('click', closeMenuFn);
     menuOverlay.addEventListener('click', closeMenuFn);
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', () => { switchView(item.getAttribute('data-view')); closeMenuFn(); });
+
+    // Toggles bars et restaurants
+    document.querySelectorAll('.nav-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const type = btn.getAttribute('data-toggle');
+            if (type === 'bars') {
+                showBars = !showBars;
+                btn.classList.toggle('active', showBars);
+                if (showBars) { addBarsMarkers(); } else { removeBarsMarkers(); }
+            } else if (type === 'restaurants') {
+                showRestaurants = !showRestaurants;
+                btn.classList.toggle('active', showRestaurants);
+                if (showRestaurants) { addRestaurantsMarkers(); } else { removeRestaurantsMarkers(); }
+            }
+        });
     });
-    updateActiveNavItem();
     console.log('Menu initialisé avec succès');
 }
 
-function updateActiveNavItem() {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.getAttribute('data-view') === currentView ? item.classList.add('active') : item.classList.remove('active');
+function addBarsMarkers() {
+    barsData.forEach(bar => {
+        const valide = bar.Valide || bar.Validé || bar.validé || bar.valide || bar.VALIDE;
+        if (valide !== '1' && valide !== 1) return;
+        const lat = parseFloat(bar.Latitude || bar.latitude || bar.LATITUDE);
+        const lon = parseFloat(bar.Longitude || bar.longitude || bar.LONGITUDE);
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+        const marker = L.marker([lat, lon], { icon: createCocktailIcon(false) })
+            .addTo(map)
+            .bindPopup(() => createSimplePopup(bar, 'bar'), { autoPan: false, closeButton: false });
+        marker.on('click', function() {
+            if (selectedMarker && selectedMarker !== marker) selectedMarker.setIcon(selectedMarker.markerType === 'bar' ? createCocktailIcon(false) : createCouvertsIcon(false));
+            marker.setIcon(createCocktailIcon(true)); selectedMarker = marker;
+        });
+        marker.on('popupopen', function() {
+            const popupElement = marker.getPopup().getElement();
+            if (popupElement) makePopupDraggable(popupElement, marker);
+        });
+        marker.markerType = 'bar';
+        barsMarkers.push(marker);
     });
+    console.log(`${barsMarkers.length} bars affichés`);
 }
 
-function switchView(view) { currentView = view; updateActiveNavItem(); updateView(); }
+function removeBarsMarkers() {
+    barsMarkers.forEach(m => map.removeLayer(m));
+    barsMarkers = [];
+}
 
-function updateView() {
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-    const legend = document.getElementById('legend');
-    const calendarPanel = document.getElementById('calendar-panel');
-    const datetimeDisplay = document.getElementById('datetime-display');
-    switch(currentView) {
-        case 'plages':
-            legend.style.display = 'flex';
-            datetimeDisplay.classList.add('clickable');
-            updateMarkers();
-            break;
-        case 'bars':
-            legend.style.display = 'none';
-            datetimeDisplay.classList.remove('clickable');
-            calendarPanel.classList.add('hidden');
-            updateBarsMarkers();
-            break;
-        case 'restaurants':
-            legend.style.display = 'none';
-            datetimeDisplay.classList.remove('clickable');
-            calendarPanel.classList.add('hidden');
-            updateRestaurantsMarkers();
-            break;
-    }
-    if (userMarker) userMarker.addTo(map);
+function addRestaurantsMarkers() {
+    restaurantsData.forEach(restaurant => {
+        const valide = restaurant.Valide || restaurant.Validé || restaurant.validé || restaurant.valide || restaurant.VALIDE;
+        if (valide !== '1' && valide !== 1) return;
+        const lat = parseFloat(restaurant.Latitude || restaurant.latitude || restaurant.LATITUDE);
+        const lon = parseFloat(restaurant.Longitude || restaurant.longitude || restaurant.LONGITUDE);
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+        const marker = L.marker([lat, lon], { icon: createCouvertsIcon(false) })
+            .addTo(map)
+            .bindPopup(() => createSimplePopup(restaurant, 'restaurant'), { autoPan: false, closeButton: false });
+        marker.on('click', function() {
+            if (selectedMarker && selectedMarker !== marker) selectedMarker.setIcon(selectedMarker.markerType === 'bar' ? createCocktailIcon(false) : createCouvertsIcon(false));
+            marker.setIcon(createCouvertsIcon(true)); selectedMarker = marker;
+        });
+        marker.on('popupopen', function() {
+            const popupElement = marker.getPopup().getElement();
+            if (popupElement) makePopupDraggable(popupElement, marker);
+        });
+        marker.markerType = 'restaurant';
+        restaurantsMarkers.push(marker);
+    });
+    console.log(`${restaurantsMarkers.length} restaurants affichés`);
+}
+
+function removeRestaurantsMarkers() {
+    restaurantsMarkers.forEach(m => map.removeLayer(m));
+    restaurantsMarkers = [];
 }
 
 function createCocktailIcon(selected = false) {
@@ -674,53 +711,7 @@ function createCouvertsIcon(selected = false) {
     return L.divIcon({ html: couverts, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32] });
 }
 
-function updateBarsMarkers() {
-    barsData.forEach(bar => {
-        const valide = bar.Valide || bar.Validé || bar.validé || bar.valide || bar.VALIDE;
-        if (valide !== '1' && valide !== 1) return;
-        const lat = parseFloat(bar.Latitude || bar.latitude || bar.LATITUDE);
-        const lon = parseFloat(bar.Longitude || bar.longitude || bar.LONGITUDE);
-        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
-        const marker = L.marker([lat, lon], { icon: createCocktailIcon(false) })
-            .addTo(map)
-            .bindPopup(() => createSimplePopup(bar, 'bar'), { autoPan: false, closeButton: false });
-        marker.on('click', function() {
-            if (selectedMarker && selectedMarker !== marker) selectedMarker.setIcon(selectedMarker.markerType === 'bar' ? createCocktailIcon(false) : createCouvertsIcon(false));
-            marker.setIcon(createCocktailIcon(true)); selectedMarker = marker;
-        });
-        marker.on('popupopen', function() {
-            const popupElement = marker.getPopup().getElement();
-            if (popupElement) makePopupDraggable(popupElement, marker);
-        });
-        marker.markerType = 'bar';
-        markers.push(marker);
-    });
-    console.log(`${markers.length} bars affichés`);
-}
 
-function updateRestaurantsMarkers() {
-    restaurantsData.forEach(restaurant => {
-        const valide = restaurant.Valide || restaurant.Validé || restaurant.validé || restaurant.valide || restaurant.VALIDE;
-        if (valide !== '1' && valide !== 1) return;
-        const lat = parseFloat(restaurant.Latitude || restaurant.latitude || restaurant.LATITUDE);
-        const lon = parseFloat(restaurant.Longitude || restaurant.longitude || restaurant.LONGITUDE);
-        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
-        const marker = L.marker([lat, lon], { icon: createCouvertsIcon(false) })
-            .addTo(map)
-            .bindPopup(() => createSimplePopup(restaurant, 'restaurant'), { autoPan: false, closeButton: false });
-        marker.on('click', function() {
-            if (selectedMarker && selectedMarker !== marker) selectedMarker.setIcon(selectedMarker.markerType === 'bar' ? createCocktailIcon(false) : createCouvertsIcon(false));
-            marker.setIcon(createCouvertsIcon(true)); selectedMarker = marker;
-        });
-        marker.on('popupopen', function() {
-            const popupElement = marker.getPopup().getElement();
-            if (popupElement) makePopupDraggable(popupElement, marker);
-        });
-        marker.markerType = 'restaurant';
-        markers.push(marker);
-    });
-    console.log(`${markers.length} restaurants affichés`);
-}
 
 function makePopupDraggable(popupElement, marker) {
     let isDragging = false, startX, startY, scrollLeft, scrollTop;
