@@ -270,19 +270,22 @@ function getTideInfo() {
 
     let isRising = true, h = hMax / 2;
 
-    if (bm1 && pm1 && bm2 && pm2) {
-        if (hour < pm1) {
+    if (bm1 && pm1 && bm2) {
+        if (hour <= pm1) {
             isRising = true;
-            h = hMin + ((hMax - hMin) / 2) * (1 - Math.cos(((hour - bm1) / (pm1 - bm1)) * Math.PI));
-        } else if (hour < bm2) {
+            h = hMin + (hMax - hMin) * (0.5 - 0.5 * Math.cos(Math.min(1,(hour-bm1)/(pm1-bm1)) * Math.PI));
+        } else if (hour <= bm2) {
             isRising = false;
-            h = hMax - ((hMax - hMin) / 2) * (1 - Math.cos(((hour - pm1) / (bm2 - pm1)) * Math.PI));
-        } else if (hour < pm2) {
+            h = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(Math.min(1,(hour-pm1)/(bm2-pm1)) * Math.PI));
+        } else if (pm2 && hour <= pm2) {
             isRising = true;
-            h = hMin + ((hMax - hMin) / 2) * (1 - Math.cos(((hour - bm2) / (pm2 - bm2)) * Math.PI));
+            h = hMin + (hMax - hMin) * (0.5 - 0.5 * Math.cos(Math.min(1,(hour-bm2)/(pm2-bm2)) * Math.PI));
+        } else if (pm2) {
+            isRising = false;
+            h = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(Math.min(1,(hour-pm2)/(24-pm2)) * Math.PI));
         } else {
-            isRising = false;
-            h = hMax - ((hMax - hMin) / 2) * (1 - Math.cos(((hour - pm2) / (24 - pm2 + bm1)) * Math.PI * 0.5));
+            isRising = hour < bm2 + (24 - bm2) / 2;
+            h = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(Math.min(1,(hour-bm2)/(24-bm2)) * Math.PI));
         }
     }
 
@@ -318,18 +321,22 @@ function drawTideChart(canvas) {
         const h = i;
         labels.push(h + 'h');
         let height = hMax / 2;
-        if (bm1 !== null && pm1 !== null && bm2 !== null && pm2 !== null) {
+        if (bm1 !== null && pm1 !== null && bm2 !== null) {
             if (h <= pm1) {
-                const ratio = (h - bm1) / (pm1 - bm1);
+                const ratio = Math.min(1, Math.max(0, (h - bm1) / (pm1 - bm1)));
                 height = hMin + (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
             } else if (h <= bm2) {
-                const ratio = (h - pm1) / (bm2 - pm1);
+                const ratio = Math.min(1, Math.max(0, (h - pm1) / (bm2 - pm1)));
                 height = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
-            } else if (h <= pm2) {
-                const ratio = (h - bm2) / (pm2 - bm2);
+            } else if (pm2 !== null && h <= pm2) {
+                const ratio = Math.min(1, Math.max(0, (h - bm2) / (pm2 - bm2)));
                 height = hMin + (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
+            } else if (pm2 !== null) {
+                const ratio = Math.min(1, Math.max(0, (h - pm2) / (24 - pm2)));
+                height = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
             } else {
-                const ratio = (h - pm2) / (24 - pm2);
+                // pm2 absent : descente depuis bm2 jusqu'à minuit
+                const ratio = Math.min(1, Math.max(0, (h - bm2) / (24 - bm2)));
                 height = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
             }
         }
