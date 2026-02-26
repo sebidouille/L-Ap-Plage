@@ -62,24 +62,25 @@ function initMap() {
         style: CONFIG.MAPBOX_STYLE
     }).addTo(map);
 
-    // Supprimer les POI une fois le style chargé
-    glLayer.once('add', function() {
-        const glMap = glLayer.getMapboxMap();
-        glMap.on('styledata', function() {
-            const style = glMap.getStyle();
-            if (!style || !style.layers) return;
-            style.layers.forEach(function(layer) {
-                if (
-                    layer.id.includes('poi') ||
-                    layer.id.includes('transit-label') ||
-                    layer.id.includes('airport-label') ||
-                    layer.id.includes('ferry')
-                ) {
-                    try { glMap.setLayoutProperty(layer.id, 'visibility', 'none'); } catch(e) {}
+    // Supprimer les POI via _glMap une fois le style chargé
+    setTimeout(function hidePOI() {
+        const glMap = glLayer._glMap;
+        if (!glMap) { setTimeout(hidePOI, 200); return; }
+        if (!glMap.isStyleLoaded()) { glMap.on("load", function() {
+            glMap.getStyle().layers.forEach(function(layer) {
+                if (layer.id.includes("poi") || layer.id.includes("transit-label") || layer.id.includes("airport-label") || layer.id.includes("ferry")) {
+                    try { glMap.setLayoutProperty(layer.id, "visibility", "none"); } catch(e) {}
                 }
             });
+            console.log("POI masqués");
+        }); return; }
+        glMap.getStyle().layers.forEach(function(layer) {
+            if (layer.id.includes("poi") || layer.id.includes("transit-label") || layer.id.includes("airport-label") || layer.id.includes("ferry")) {
+                try { glMap.setLayoutProperty(layer.id, "visibility", "none"); } catch(e) {}
+            }
         });
-    });
+        console.log("POI masqués");
+    }, 500);
 
     console.log('Carte Mapbox GL chargée via mapbox-gl-leaflet');
     addGeolocationButton();
