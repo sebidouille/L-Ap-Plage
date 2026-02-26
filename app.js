@@ -310,17 +310,30 @@ function drawTideChart(canvas) {
     const hMax = parseFloat((tide.hauteur_max || "").replace(",", ".")) || 5.3;
     const hMin = 0.9;
 
-    const labels = [], data = [];
-    for (let h = 0; h <= 24; h += 0.25) {
-        labels.push(h % 1 === 0 ? `${Math.floor(h)}h` : '');
+    // 1 point par heure = 25 points, plus lisible
+    const labels = [];
+    const data   = [];
+
+    for (let i = 0; i <= 24; i++) {
+        const h = i;
+        labels.push(h + 'h');
         let height = hMax / 2;
-        if (bm1 && pm1 && bm2 && pm2) {
-            if      (h < pm1) height = hMin + ((hMax-hMin)/2)*(1-Math.cos(((h-bm1)/(pm1-bm1))*Math.PI));
-            else if (h < bm2) height = hMax - ((hMax-hMin)/2)*(1-Math.cos(((h-pm1)/(bm2-pm1))*Math.PI));
-            else if (h < pm2) height = hMin + ((hMax-hMin)/2)*(1-Math.cos(((h-bm2)/(pm2-bm2))*Math.PI));
-            else              height = hMax - ((hMax-hMin)/2)*(1-Math.cos(((h-pm2)/(24-pm2+bm1))*Math.PI*0.5));
+        if (bm1 !== null && pm1 !== null && bm2 !== null && pm2 !== null) {
+            if (h <= pm1) {
+                const ratio = (h - bm1) / (pm1 - bm1);
+                height = hMin + (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
+            } else if (h <= bm2) {
+                const ratio = (h - pm1) / (bm2 - pm1);
+                height = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
+            } else if (h <= pm2) {
+                const ratio = (h - bm2) / (pm2 - bm2);
+                height = hMin + (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
+            } else {
+                const ratio = (h - pm2) / (24 - pm2);
+                height = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
+            }
         }
-        data.push(Math.max(hMin*0.8, Math.min(hMax*1.1, height)));
+        data.push(parseFloat(Math.max(0, Math.min(hMax, height)).toFixed(2)));
     }
 
     const currentHour = now.getHours() + now.getMinutes() / 60;
@@ -340,15 +353,15 @@ function drawTideChart(canvas) {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12, font: { size: 10 } } },
-                y: { min: 0, max: 6, ticks: { callback: v => v + 'm', stepSize: 1, font: { size: 10 } } }
+                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 13, font: { size: 10 } } },
+                y: { min: 0, max: Math.ceil(hMax) + 1, ticks: { callback: v => v + 'm', stepSize: 1, font: { size: 10 } } }
             }
         },
         plugins: [{
             id: 'nowLine',
             afterDatasetsDraw(chart) {
                 const { ctx, scales: { x, y } } = chart;
-                const px = x.getPixelForValue(currentHour * 4);
+                const px = x.getPixelForValue(currentHour);
                 ctx.save();
                 ctx.strokeStyle = '#f44336'; ctx.lineWidth = 1.5; ctx.setLineDash([4,4]);
                 ctx.beginPath(); ctx.moveTo(px, y.top); ctx.lineTo(px, y.bottom); ctx.stroke();
