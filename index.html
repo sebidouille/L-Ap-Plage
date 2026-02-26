@@ -27,44 +27,7 @@
 
     <!-- Plugin mapbox-gl-leaflet -->
     <script src="https://unpkg.com/mapbox-gl-leaflet/leaflet-mapbox-gl.js"></script>
-
-    <script>
-        const MAPBOX_TOKEN = 'pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xd3dvcTAwMTZzMnJzZXdyYXFpMjBvIn0.Tq3uFh1jH5n-7OXcfm7MtQ';
-        const MAPBOX_STYLE = 'mapbox://styles/mapbox/outdoors-v12';
-        const GROIX_CENTER = [47.6389, -3.4523];
-        const ZOOM_LEVEL = 13;
-
-        const map = L.map('map', {
-            zoomControl: true,
-            attributionControl: false
-        }).setView(GROIX_CENTER, ZOOM_LEVEL);
-
-        const glLayer = L.mapboxGL({
-            accessToken: MAPBOX_TOKEN,
-            style: MAPBOX_STYLE
-        }).addTo(map);
-
-        // Suppression des POI
-        setTimeout(function hidePOI() {
-            const glMap = glLayer._glMap;
-            if (!glMap) { setTimeout(hidePOI, 200); return; }
-            if (!glMap.isStyleLoaded()) {
-                glMap.on('load', function() {
-                    glMap.getStyle().layers.forEach(function(layer) {
-                        if (layer.id.includes('poi') || layer.id.includes('transit-label') || layer.id.includes('airport-label') || layer.id.includes('ferry')) {
-                            try { glMap.setLayoutProperty(layer.id, 'visibility', 'none'); } catch(e) {}
-                        }
-                    });
-                });
-                return;
-            }
-            glMap.getStyle().layers.forEach(function(layer) {
-                if (layer.id.includes('poi') || layer.id.includes('transit-label') || layer.id.includes('airport-label') || layer.id.includes('ferry')) {
-                    try { glMap.setLayoutProperty(layer.id, 'visibility', 'none'); } catch(e) {}
-                }
-            });
-        }, 500);
-    </script>
+    <script src="app.js"></script>
 
 </body>
 </html>
