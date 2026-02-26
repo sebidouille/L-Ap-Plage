@@ -21,7 +21,7 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
 /* Burger */
 #menu-burger {
     position: fixed;
-    top: 85px; left: 15px;
+    top: 15px; right: 15px;
     width: 44px; height: 44px;
     border-radius: 50%;
     border: none;
