@@ -5,163 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1e88e5">
     <title>L'Ap'Plage - Groix</title>
-    
+
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <!-- Mapbox GL JS CSS -->
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-    
-    <!-- Chart.js pour les graphiques de marée -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    
+
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <!-- Bouton Menu Burger (séparé, en haut à gauche) -->
-    <button id="menu-burger" class="menu-burger">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-    </button>
-
-    <!-- En-tête avec date/heure -->
-    <div id="header">
-        <div id="datetime-display" class="clickable">
-            <div id="datetime-info">
-                <span id="current-date">Chargement...</span>
-                <span id="current-time"></span>
-            </div>
-            <span style="font-size: 18px;">📅</span>
-        </div>
-    </div>
-
-    <!-- Menu de Navigation -->
-    <div id="nav-menu" class="nav-menu">
-        <div class="nav-menu-header">
-            <h3>L'Ap'Plage</h3>
-            <button id="close-menu" class="close-menu">✕</button>
-        </div>
-        <div class="nav-menu-items">
-            <button class="nav-item nav-toggle" data-toggle="bars">
-                🍸 Où boire un coup
-            </button>
-            <button class="nav-item nav-toggle" data-toggle="restaurants">
-                🍴 Où manger
-            </button>
-    </div>
-    
-    <!-- Overlay sombre pour le menu -->
-    <div id="menu-overlay" class="menu-overlay"></div>
-
-    <!-- Calendrier (masqué par défaut) -->
-    <div id="calendar-panel" class="hidden">
-        <div class="calendar-header">
-            <button id="btn-now" class="btn-primary">🔄 Maintenant</button>
-        </div>
-        
-        <div class="calendar-content">
-            <h3>📅 Choisir une date</h3>
-            <div id="date-selector"></div>
-            
-            <h3>🕐 Choisir une heure</h3>
-            <select id="hour-selector">
-                <!-- Options générées dynamiquement -->
-            </select>
-        </div>
-        
-        <div class="calendar-footer">
-            <button id="btn-validate" class="btn-success">✓ Valider</button>
-            <button id="btn-cancel" class="btn-secondary">Annuler</button>
-        </div>
-    </div>
 
     <!-- Carte -->
     <div id="map"></div>
 
-    <!-- Légende -->
-    <div id="legend">
-        <div class="legend-item">
-            <svg width="24" height="24" viewBox="0 0 32 32" style="display: block;">
-                <ellipse cx="16" cy="30" rx="6" ry="1.5" fill="rgba(0,0,0,0.2)"/>
-                <line x1="16" y1="14" x2="16" y2="29" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="16" cy="3" r="1.2" fill="#666"/>
-                <path d="M 4 14 Q 4 4, 16 2 Q 28 4, 28 14" fill="#4caf50" stroke="white" stroke-width="1.5"/>
-                <path d="M 16 2 L 16 14" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
-                <path d="M 11 4 L 12 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-                <path d="M 21 4 L 20 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-                <path d="M 4 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
-                <path d="M 28 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
-            </svg>
-            <span class="emoji">😃</span>
-            <span>Excellentes</span>
-        </div>
-        <div class="legend-item">
-            <svg width="24" height="24" viewBox="0 0 32 32" style="display: block;">
-                <ellipse cx="16" cy="30" rx="6" ry="1.5" fill="rgba(0,0,0,0.2)"/>
-                <line x1="16" y1="14" x2="16" y2="29" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="16" cy="3" r="1.2" fill="#666"/>
-                <path d="M 4 14 Q 4 4, 16 2 Q 28 4, 28 14" fill="#2196f3" stroke="white" stroke-width="1.5"/>
-                <path d="M 16 2 L 16 14" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
-                <path d="M 11 4 L 12 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-                <path d="M 21 4 L 20 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-                <path d="M 4 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
-                <path d="M 28 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
-            </svg>
-            <span class="emoji">🙂</span>
-            <span>Bonnes</span>
-        </div>
-        <div class="legend-item">
-            <svg width="24" height="24" viewBox="0 0 32 32" style="display: block;">
-                <ellipse cx="16" cy="30" rx="6" ry="1.5" fill="rgba(0,0,0,0.2)"/>
-                <line x1="16" y1="14" x2="16" y2="29" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="16" cy="3" r="1.2" fill="#666"/>
-                <path d="M 4 14 Q 4 4, 16 2 Q 28 4, 28 14" fill="#ff9800" stroke="white" stroke-width="1.5"/>
-                <path d="M 16 2 L 16 14" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
-                <path d="M 11 4 L 12 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-                <path d="M 21 4 L 20 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-                <path d="M 4 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
-                <path d="M 28 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
-            </svg>
-            <span class="emoji">😐</span>
-            <span>Acceptables</span>
-        </div>
-        <div class="legend-item">
-            <svg width="24" height="24" viewBox="0 0 32 32" style="display: block;">
-                <ellipse cx="16" cy="30" rx="6" ry="1.5" fill="rgba(0,0,0,0.2)"/>
-                <line x1="16" y1="14" x2="16" y2="29" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="16" cy="3" r="1.2" fill="#666"/>
-                <path d="M 4 14 Q 4 4, 16 2 Q 28 4, 28 14" fill="#f44336" stroke="white" stroke-width="1.5"/>
-                <path d="M 16 2 L 16 14" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
-                <path d="M 11 4 L 12 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-                <path d="M 21 4 L 20 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
-                <path d="M 4 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
-                <path d="M 28 14 L 16 2" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" fill="none"/>
-            </svg>
-            <span class="emoji">☹️</span>
-            <span>Difficiles</span>
-        </div>
-    </div>
-
-    <!-- Loading overlay -->
-    <div id="loading" class="hidden">
-        <div class="spinner"></div>
-        <p>Chargement des données...</p>
-    </div>
-
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Mapbox GL JS -->
+    <!-- Mapbox GL JS v2 -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 
-    <!-- Plugin mapbox-gl-leaflet (compatibilité GL dans Leaflet) -->
+    <!-- Plugin mapbox-gl-leaflet -->
     <script src="https://unpkg.com/mapbox-gl-leaflet/leaflet-mapbox-gl.js"></script>
-    
-    <!-- App JS -->
-    <script src="app.js"></script>
+
+    <script>
+        const MAPBOX_TOKEN = 'pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xd3dvcTAwMTZzMnJzZXdyYXFpMjBvIn0.Tq3uFh1jH5n-7OXcfm7MtQ';
+        const MAPBOX_STYLE = 'mapbox://styles/mapbox/outdoors-v12';
+        const GROIX_CENTER = [47.6389, -3.4523];
+        const ZOOM_LEVEL = 13;
+
+        const map = L.map('map', {
+            zoomControl: true,
+            attributionControl: false
+        }).setView(GROIX_CENTER, ZOOM_LEVEL);
+
+        const glLayer = L.mapboxGL({
+            accessToken: MAPBOX_TOKEN,
+            style: MAPBOX_STYLE
+        }).addTo(map);
+
+        // Suppression des POI
+        setTimeout(function hidePOI() {
+            const glMap = glLayer._glMap;
+            if (!glMap) { setTimeout(hidePOI, 200); return; }
+            if (!glMap.isStyleLoaded()) {
+                glMap.on('load', function() {
+                    glMap.getStyle().layers.forEach(function(layer) {
+                        if (layer.id.includes('poi') || layer.id.includes('transit-label') || layer.id.includes('airport-label') || layer.id.includes('ferry')) {
+                            try { glMap.setLayoutProperty(layer.id, 'visibility', 'none'); } catch(e) {}
+                        }
+                    });
+                });
+                return;
+            }
+            glMap.getStyle().layers.forEach(function(layer) {
+                if (layer.id.includes('poi') || layer.id.includes('transit-label') || layer.id.includes('airport-label') || layer.id.includes('ferry')) {
+                    try { glMap.setLayoutProperty(layer.id, 'visibility', 'none'); } catch(e) {}
+                }
+            });
+        }, 500);
+    </script>
+
 </body>
 </html>
