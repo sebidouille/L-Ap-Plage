@@ -116,7 +116,7 @@ function addPlagesMarkers() {
             setTimeout(function() {
                 const canvas = document.querySelector('.tide-canvas');
                 if (canvas) drawTideChart(canvas);
-            }, 100);
+            }, 300);
         });
 
         marker._color = color;
@@ -338,7 +338,10 @@ function drawTideChart(canvas) {
 
     const currentHour = now.getHours() + now.getMinutes() / 60;
 
-    if (canvas._chart) canvas._chart.destroy();
+    // Détruire tout chart existant sur ce canvas
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+
     canvas._chart = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
