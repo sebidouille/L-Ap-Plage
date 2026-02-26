@@ -265,7 +265,7 @@ function getTideInfo() {
 
     const bm1 = ph(tide.bm1_heure); const pm1 = ph(tide.pm1_heure);
     const bm2 = ph(tide.bm2_heure); const pm2 = ph(tide.pm2_heure);
-    const hMax = parseFloat(tide.hauteur_max) || 5.3;
+    const hMax = parseFloat((tide.hauteur_max || "").replace(",", ".")) || 5.3;
     const hMin = 0.9;
 
     let isRising = true, h = hMax / 2;
@@ -307,7 +307,7 @@ function drawTideChart(canvas) {
     const ph   = t => { if (!t) return null; const m = t.match(/(\d+)h(\d+)/); return m ? +m[1] + +m[2]/60 : null; };
     const bm1  = ph(tide.bm1_heure); const pm1 = ph(tide.pm1_heure);
     const bm2  = ph(tide.bm2_heure); const pm2 = ph(tide.pm2_heure);
-    const hMax = parseFloat(tide.hauteur_max) || 5.3;
+    const hMax = parseFloat((tide.hauteur_max || "").replace(",", ".")) || 5.3;
     const hMin = 0.9;
 
     const labels = [], data = [];
