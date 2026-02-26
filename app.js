@@ -102,7 +102,7 @@ function addPlagesMarkers() {
         const color = getColor(plage);
         const marker = L.marker([lat, lon], { icon: createParasolIcon(color, false) })
             .addTo(map)
-            .bindPopup(() => createPopup(plage), { maxWidth: 280, closeButton: true });
+            .bindPopup(createPopup(plage), { maxWidth: 280, closeButton: true });
 
         marker.on('click', function() {
             if (selectedMarker && selectedMarker !== marker) {
@@ -110,6 +110,13 @@ function addPlagesMarkers() {
             }
             marker.setIcon(createParasolIcon(color, true));
             selectedMarker = marker;
+        });
+
+        marker.on('popupopen', function() {
+            setTimeout(function() {
+                const canvas = document.querySelector('.tide-canvas');
+                if (canvas) drawTideChart(canvas);
+            }, 100);
         });
 
         marker._color = color;
@@ -232,22 +239,15 @@ function createPopup(plage) {
     const tideInfo    = getTideInfo();
     const chartId     = 'chart-' + Math.random().toString(36).substr(2, 8);
 
-    const html = `
+    return `
         <div class="popup-wrap">
             <div class="popup-header">${nom}</div>
             <div class="popup-body">
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
                 <p><strong>Marée actuelle :</strong> ${tideInfo.arrow} ${tideInfo.status} — ${tideInfo.height}m</p>
-                <div class="popup-chart"><canvas id="${chartId}"></canvas></div>
+                <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
             </div>
         </div>`;
-
-    setTimeout(() => {
-        const canvas = document.getElementById(chartId);
-        if (canvas) drawTideChart(canvas);
-    }, 200);
-
-    return html;
 }
 
 // ============================================
