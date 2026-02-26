@@ -23,7 +23,28 @@ body {
     background: var(--ocean-blue);
 }
 
-/* Bouton Menu Burger - En haut à gauche, sous le zoom */
+/* Carte — plein écran absolu */
+#map {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+}
+
+/* Fix GL canvas plein écran */
+.mapboxgl-canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.leaflet-gl-layer {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Bouton Menu Burger */
 .menu-burger {
     position: fixed;
     top: 85px;
@@ -37,7 +58,6 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    pointer-events: auto;
     transition: background 0.3s, transform 0.2s;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     z-index: 1000;
@@ -52,7 +72,7 @@ body {
     transform: scale(0.95);
 }
 
-/* En-tête avec date/heure (centré) */
+/* En-tête avec date/heure */
 #header {
     position: fixed;
     top: 10px;
@@ -69,7 +89,7 @@ body {
     pointer-events: none;
 }
 
-/* Menu de Navigation */
+/* Menu de Navigation — superposé, ne pousse pas la carte */
 .nav-menu {
     position: fixed;
     left: 0;
@@ -84,7 +104,7 @@ body {
 }
 
 .nav-menu.show {
-    transform: translateX(0) !important;
+    transform: translateX(0);
 }
 
 .nav-menu-header {
@@ -164,10 +184,11 @@ body {
 }
 
 .menu-overlay.show {
-    opacity: 1 !important;
-    pointer-events: auto !important;
+    opacity: 1;
+    pointer-events: auto;
 }
 
+/* Date/heure */
 #datetime-display {
     text-align: center;
     font-size: 14px;
@@ -205,16 +226,6 @@ body {
     font-size: 16px;
     font-weight: 600;
     margin-top: 2px;
-}
-
-/* Carte */
-#map {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
 }
 
 /* Légende */
@@ -377,20 +388,9 @@ body {
     transition: all 0.2s;
 }
 
-.btn-primary {
-    background: white;
-    color: var(--ocean-blue);
-}
-
-.btn-success {
-    background: var(--green);
-    color: white;
-}
-
-.btn-secondary {
-    background: #999;
-    color: white;
-}
+.btn-primary { background: white; color: var(--ocean-blue); }
+.btn-success { background: var(--green); color: white; }
+.btn-secondary { background: #999; color: white; }
 
 .btn-primary:hover,
 .btn-success:hover,
@@ -399,7 +399,7 @@ body {
     box-shadow: 0 4px 8px var(--shadow);
 }
 
-/* Popup Leaflet personnalisé */
+/* Popup Leaflet */
 .leaflet-popup-content-wrapper {
     border-radius: 12px;
     padding: 0;
@@ -418,20 +418,9 @@ body {
     padding: 16px;
 }
 
-.popup-section {
-    margin-bottom: 12px;
-}
-
-.popup-section h4 {
-    color: var(--deep-blue);
-    font-size: 14px;
-    margin-bottom: 6px;
-}
-
-.popup-section p {
-    font-size: 13px;
-    color: #555;
-}
+.popup-section { margin-bottom: 12px; }
+.popup-section h4 { color: var(--deep-blue); font-size: 14px; margin-bottom: 6px; }
+.popup-section p { font-size: 13px; color: #555; }
 
 .tide-status {
     display: flex;
@@ -441,9 +430,7 @@ body {
     font-weight: 500;
 }
 
-.tide-arrow {
-    font-size: 20px;
-}
+.tide-arrow { font-size: 20px; }
 
 .tide-chart-container {
     margin-top: 12px;
@@ -453,10 +440,7 @@ body {
 /* Loading */
 #loading {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(30, 136, 229, 0.95);
     display: flex;
     flex-direction: column;
@@ -466,9 +450,7 @@ body {
     color: white;
 }
 
-#loading.hidden {
-    display: none;
-}
+#loading.hidden { display: none; }
 
 .spinner {
     width: 50px;
@@ -479,19 +461,11 @@ body {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 @keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 0.8;
-    }
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
 }
 
 #loading p {
@@ -501,26 +475,10 @@ body {
 
 /* Responsive */
 @media (max-width: 480px) {
-    #legend {
-        font-size: 11px;
-    }
-    
-    .legend-item {
-        flex-direction: column;
-        gap: 2px;
-    }
-    
-    .marker-circle {
-        width: 14px;
-        height: 14px;
-    }
-    
-    .emoji {
-        font-size: 16px;
-    }
+    #legend { font-size: 11px; }
+    .legend-item { flex-direction: column; gap: 2px; }
+    .marker-circle { width: 14px; height: 14px; }
+    .emoji { font-size: 16px; }
 }
 
-/* Utility */
-.hidden {
-    display: none !important;
-}
+.hidden { display: none !important; }
