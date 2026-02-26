@@ -16,18 +16,68 @@
 </head>
 <body>
 
+    <!-- Bouton burger -->
+    <button id="menu-burger">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+    </button>
+
+    <!-- Header date/heure -->
+    <div id="header">
+        <span id="current-date">Chargement...</span>
+        <span id="current-time"></span>
+    </div>
+
+    <!-- Menu burger -->
+    <div id="nav-menu">
+        <div id="nav-menu-header">
+            <span>L'Ap'Plage</span>
+            <button id="close-menu">✕</button>
+        </div>
+        <div id="nav-menu-items">
+            <button class="nav-item" data-toggle="bars">🍸 Où boire un coup</button>
+            <button class="nav-item" data-toggle="restaurants">🍴 Où manger</button>
+        </div>
+    </div>
+    <div id="menu-overlay"></div>
+
     <!-- Carte -->
     <div id="map"></div>
 
+    <!-- Légende -->
+    <div id="legend">
+        <div class="legend-item">
+            <span class="dot green"></span>
+            <span class="emoji">😃</span>
+            <span>Excellentes</span>
+        </div>
+        <div class="legend-item">
+            <span class="dot blue"></span>
+            <span class="emoji">🙂</span>
+            <span>Bonnes</span>
+        </div>
+        <div class="legend-item">
+            <span class="dot orange"></span>
+            <span class="emoji">😐</span>
+            <span>Acceptables</span>
+        </div>
+        <div class="legend-item">
+            <span class="dot red"></span>
+            <span class="emoji">☹️</span>
+            <span>Difficiles</span>
+        </div>
+    </div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <!-- Mapbox GL JS v2 -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-
     <!-- Plugin mapbox-gl-leaflet -->
     <script src="https://unpkg.com/mapbox-gl-leaflet/leaflet-mapbox-gl.js"></script>
+    <!-- App -->
     <script src="app.js"></script>
-
 </body>
 </html>
