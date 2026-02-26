@@ -66,8 +66,8 @@ function initMap() {
         attributionControl: false
     }).setView(CONFIG.GROIX_CENTER, CONFIG.ZOOM_LEVEL);
     
-    // Mapbox - Style Outdoors personnalisé SANS POI
-    L.tileLayer('https://api.mapbox.com/styles/v1/rouxseb/cmm3c5uvr002i01qz88ysgdf4/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xd3dvcTAwMTZzMnJzZXdyYXFpMjBvIn0.Tq3uFh1jH5n-7OXcfm7MtQ', {
+    // Mapbox - Style light-v11 (minimaliste, ZÉRO POI commercial)
+    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xd3dvcTAwMTZzMnJzZXdyYXFpMjBvIn0.Tq3uFh1jH5n-7OXcfm7MtQ', {
         attribution: '© <a href="https://www.mapbox.com/">Mapbox</a>',
         tileSize: 512,
         zoomOffset: -1,
@@ -75,7 +75,7 @@ function initMap() {
         minZoom: 11
     }).addTo(map);
     
-    console.log('Carte Mapbox Outdoors personnalisé chargée');
+    console.log('Carte Mapbox light-v11 chargée');
     
     // Ajouter le bouton de géolocalisation
     addGeolocationButton();
