@@ -57,10 +57,29 @@ function initMap() {
         attributionControl: false
     }).setView(CONFIG.GROIX_CENTER, CONFIG.ZOOM_LEVEL);
 
-    L.mapboxGL({
+    const glLayer = L.mapboxGL({
         accessToken: CONFIG.MAPBOX_TOKEN,
         style: CONFIG.MAPBOX_STYLE
     }).addTo(map);
+
+    // Supprimer les POI une fois le style chargé
+    glLayer.once('add', function() {
+        const glMap = glLayer.getMapboxMap();
+        glMap.on('styledata', function() {
+            const style = glMap.getStyle();
+            if (!style || !style.layers) return;
+            style.layers.forEach(function(layer) {
+                if (
+                    layer.id.includes('poi') ||
+                    layer.id.includes('transit-label') ||
+                    layer.id.includes('airport-label') ||
+                    layer.id.includes('ferry')
+                ) {
+                    try { glMap.setLayoutProperty(layer.id, 'visibility', 'none'); } catch(e) {}
+                }
+            });
+        });
+    });
 
     console.log('Carte Mapbox GL chargée via mapbox-gl-leaflet');
     addGeolocationButton();
