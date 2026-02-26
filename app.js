@@ -27,11 +27,7 @@ let selectedMarker = null;
 // ============================================
 // INIT
 // ============================================
-document.addEventListener('DOMContentLoaded', async function() {
-    initMap();
-    await loadData();
-    addPlagesMarkers();
-});
+
 
 // ============================================
 // CARTE
@@ -182,3 +178,46 @@ function parseCSVLine(line) {
     result.push(cur);
     return result;
 }
+
+// ============================================
+// HEADER DATE/HEURE
+// ============================================
+function initHeader() {
+    function update() {
+        const now = new Date();
+        document.getElementById('current-date').textContent =
+            now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        document.getElementById('current-time').textContent =
+            now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    }
+    update();
+    setInterval(update, 1000);
+}
+
+// ============================================
+// MENU BURGER
+// ============================================
+function initMenu() {
+    const burger  = document.getElementById('menu-burger');
+    const menu    = document.getElementById('nav-menu');
+    const overlay = document.getElementById('menu-overlay');
+    const close   = document.getElementById('close-menu');
+
+    const open  = () => { menu.classList.add('show'); overlay.classList.add('show'); };
+    const shut  = () => { menu.classList.remove('show'); overlay.classList.remove('show'); };
+
+    burger.addEventListener('click', open);
+    close.addEventListener('click', shut);
+    overlay.addEventListener('click', shut);
+}
+
+// ============================================
+// APPEL INIT COMPLET
+// ============================================
+document.addEventListener('DOMContentLoaded', async function() {
+    initMap();
+    initHeader();
+    initMenu();
+    await loadData();
+    addPlagesMarkers();
+});
