@@ -12,7 +12,7 @@ const CONFIG = {
     GROIX_CENTER: [47.6389, -3.4523],
     ZOOM_LEVEL: 13,
     MAPBOX_TOKEN: 'pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xd3dvcTAwMTZzMnJzZXdyYXFpMjBvIn0.Tq3uFh1jH5n-7OXcfm7MtQ',
-    MAPBOX_STYLE: 'mapbox://styles/rouxseb/cmm3ifqbu002j01qt60k6f6ws'
+    MAPBOX_STYLE: 'mapbox://styles/mapbox/outdoors-v12'
 };
 
 // État global
