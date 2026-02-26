@@ -101,7 +101,8 @@ function addPlagesMarkers() {
 
         const color = getColor(plage);
         const marker = L.marker([lat, lon], { icon: createParasolIcon(color, false) })
-            .addTo(map);
+            .addTo(map)
+            .bindPopup(() => createPopup(plage), { maxWidth: 280, closeButton: true });
 
         marker.on('click', function() {
             if (selectedMarker && selectedMarker !== marker) {
@@ -221,3 +222,138 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadData();
     addPlagesMarkers();
 });
+
+// ============================================
+// POPUPS PLAGES
+// ============================================
+function createPopup(plage) {
+    const nom         = plage.Nom || plage.nom || 'Plage';
+    const mareeIdeale = plage['Marée idéale'] || plage.maree_ideale || '-';
+    const tideInfo    = getTideInfo();
+    const chartId     = 'chart-' + Math.random().toString(36).substr(2, 8);
+
+    const html = `
+        <div class="popup-wrap">
+            <div class="popup-header">${nom}</div>
+            <div class="popup-body">
+                <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
+                <p><strong>Marée actuelle :</strong> ${tideInfo.arrow} ${tideInfo.status} — ${tideInfo.height}m</p>
+                <div class="popup-chart"><canvas id="${chartId}"></canvas></div>
+            </div>
+        </div>`;
+
+    setTimeout(() => {
+        const canvas = document.getElementById(chartId);
+        if (canvas) drawTideChart(canvas);
+    }, 200);
+
+    return html;
+}
+
+// ============================================
+// INFO MARÉE ACTUELLE
+// ============================================
+function getTideInfo() {
+    const now   = new Date();
+    const today = now.toISOString().split('T')[0];
+    const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
+
+    if (!tide) return { arrow: '↗️', status: 'Montante', height: '—' };
+
+    const hour = now.getHours() + now.getMinutes() / 60;
+    const ph   = t => { if (!t) return null; const m = t.match(/(\d+)h(\d+)/); return m ? +m[1] + +m[2]/60 : null; };
+
+    const bm1 = ph(tide.bm1_heure); const pm1 = ph(tide.pm1_heure);
+    const bm2 = ph(tide.bm2_heure); const pm2 = ph(tide.pm2_heure);
+    const hMax = parseFloat(tide.hauteur_max) || 5.3;
+    const hMin = 0.9;
+
+    let isRising = true, h = hMax / 2;
+
+    if (bm1 && pm1 && bm2 && pm2) {
+        if (hour < pm1) {
+            isRising = true;
+            h = hMin + ((hMax - hMin) / 2) * (1 - Math.cos(((hour - bm1) / (pm1 - bm1)) * Math.PI));
+        } else if (hour < bm2) {
+            isRising = false;
+            h = hMax - ((hMax - hMin) / 2) * (1 - Math.cos(((hour - pm1) / (bm2 - pm1)) * Math.PI));
+        } else if (hour < pm2) {
+            isRising = true;
+            h = hMin + ((hMax - hMin) / 2) * (1 - Math.cos(((hour - bm2) / (pm2 - bm2)) * Math.PI));
+        } else {
+            isRising = false;
+            h = hMax - ((hMax - hMin) / 2) * (1 - Math.cos(((hour - pm2) / (24 - pm2 + bm1)) * Math.PI * 0.5));
+        }
+    }
+
+    return {
+        arrow:  isRising ? '↗️' : '↘️',
+        status: isRising ? 'Montante' : 'Descendante',
+        height: Math.max(hMin * 0.8, Math.min(hMax * 1.1, h)).toFixed(1)
+    };
+}
+
+// ============================================
+// GRAPHIQUE MARÉE
+// ============================================
+function drawTideChart(canvas) {
+    if (typeof Chart === 'undefined') return;
+
+    const now   = new Date();
+    const today = now.toISOString().split('T')[0];
+    const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
+    if (!tide) return;
+
+    const ph   = t => { if (!t) return null; const m = t.match(/(\d+)h(\d+)/); return m ? +m[1] + +m[2]/60 : null; };
+    const bm1  = ph(tide.bm1_heure); const pm1 = ph(tide.pm1_heure);
+    const bm2  = ph(tide.bm2_heure); const pm2 = ph(tide.pm2_heure);
+    const hMax = parseFloat(tide.hauteur_max) || 5.3;
+    const hMin = 0.9;
+
+    const labels = [], data = [];
+    for (let h = 0; h <= 24; h += 0.25) {
+        labels.push(h % 1 === 0 ? `${Math.floor(h)}h` : '');
+        let height = hMax / 2;
+        if (bm1 && pm1 && bm2 && pm2) {
+            if      (h < pm1) height = hMin + ((hMax-hMin)/2)*(1-Math.cos(((h-bm1)/(pm1-bm1))*Math.PI));
+            else if (h < bm2) height = hMax - ((hMax-hMin)/2)*(1-Math.cos(((h-pm1)/(bm2-pm1))*Math.PI));
+            else if (h < pm2) height = hMin + ((hMax-hMin)/2)*(1-Math.cos(((h-bm2)/(pm2-bm2))*Math.PI));
+            else              height = hMax - ((hMax-hMin)/2)*(1-Math.cos(((h-pm2)/(24-pm2+bm1))*Math.PI*0.5));
+        }
+        data.push(Math.max(hMin*0.8, Math.min(hMax*1.1, height)));
+    }
+
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+
+    if (canvas._chart) canvas._chart.destroy();
+    canvas._chart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                data, borderColor: '#1e88e5',
+                backgroundColor: 'rgba(30,136,229,0.1)',
+                fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12, font: { size: 10 } } },
+                y: { min: 0, max: 6, ticks: { callback: v => v + 'm', stepSize: 1, font: { size: 10 } } }
+            }
+        },
+        plugins: [{
+            id: 'nowLine',
+            afterDatasetsDraw(chart) {
+                const { ctx, scales: { x, y } } = chart;
+                const px = x.getPixelForValue(currentHour * 4);
+                ctx.save();
+                ctx.strokeStyle = '#f44336'; ctx.lineWidth = 1.5; ctx.setLineDash([4,4]);
+                ctx.beginPath(); ctx.moveTo(px, y.top); ctx.lineTo(px, y.bottom); ctx.stroke();
+                ctx.restore();
+            }
+        }]
+    });
+}
