@@ -6,7 +6,8 @@ const CONFIG = {
     SHEET_GIDS: {
         PLAGES:          0,
         MAREES:          138428367,
-        RECOMMANDATIONS: 2049933385
+        RECOMMANDATIONS: 2049933385,
+        METEO:           146047806
     },
     GROIX_CENTER: [47.6389, -3.4523],
     ZOOM_LEVEL: 13,
@@ -23,6 +24,8 @@ let plagesData = [];
 let mareesData = [];
 let plagesMarkers = [];
 let selectedMarker = null;
+let selectedDate = null; // null = maintenant
+let meteoData = [];
 
 // ============================================
 // INIT
@@ -69,14 +72,16 @@ function removePOI(glMap) {
 // CHARGEMENT DONNÉES
 // ============================================
 async function loadData() {
-    const [plagesCSV, mareesCSV, recoCSV] = await Promise.all([
+    const [plagesCSV, mareesCSV, recoCSV, meteoCsv] = await Promise.all([
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.PLAGES}`).then(r => r.text()),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.MAREES}`).then(r => r.text()),
-        fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RECOMMANDATIONS}`).then(r => r.text())
+        fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RECOMMANDATIONS}`).then(r => r.text()),
+        fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.METEO}`).then(r => r.text())
     ]);
 
     plagesData = parseCSV(plagesCSV);
     mareesData = parseCSV(mareesCSV);
+    meteoData  = parseCSV(meteoCsv);
     const recoData = parseCSV(recoCSV);
 
     // Associer couleur et score à chaque plage
@@ -181,9 +186,87 @@ function addPlagesMarkers() {
     console.log(`${plagesMarkers.length} marqueurs plages ajoutés`);
 }
 
+function getMeteoAtDate(date) {
+    // Trouver la ligne météo la plus proche de la date/heure choisie
+    if (!meteoData || meteoData.length === 0) return null;
+    const target = date.getTime();
+    let best = null, bestDiff = Infinity;
+    meteoData.forEach(row => {
+        if (!row.timestamp) return;
+        const t = new Date(row.timestamp).getTime();
+        const diff = Math.abs(t - target);
+        if (diff < bestDiff) { bestDiff = diff; best = row; }
+    });
+    return best;
+}
+
+function getScoreMaree(plage, tide, date) {
+    if (!tide) return 5;
+    const { events, hMax, hMin } = getTideEvents(tide);
+    const hour   = date.getHours() + date.getMinutes() / 60;
+    const height = tideHeightAt(hour, events, hMin, hMax);
+    const ratio  = (height - hMin) / (hMax - hMin); // 0=basse mer, 1=haute mer
+    const ideale = (plage['Marée idéale'] || '').toLowerCase();
+
+    // Calcul score 0-10 selon correspondance
+    if (ideale.includes('haute') && ideale.includes('basse')) return 10;
+    if (ideale.includes('haute') && ideale.includes('mi'))    return 5 + ratio * 5;
+    if (ideale.includes('basse') && ideale.includes('mi'))    return 5 + (1 - ratio) * 5;
+    if (ideale.includes('haute'))  return ratio * 10;
+    if (ideale.includes('basse'))  return (1 - ratio) * 10;
+    if (ideale.includes('mi'))     return 10 - Math.abs(ratio - 0.5) * 10;
+    return 5;
+}
+
+function getScoreVent(plage, meteo) {
+    if (!meteo) return 5;
+    const dirVent   = parseFloat(meteo.direction_vent) || 0;
+    const forceKmh  = parseFloat((meteo.force_vent_kmh || '').replace(',', '.')) || 0;
+    const orientIdeal = plage['Orientation vent idéal'] || plage['Orientation vent ideal'] || '';
+
+    // Score force : vent faible = bon, fort = mauvais
+    let scoreForce = 10;
+    if (forceKmh > 50) scoreForce = 0;
+    else if (forceKmh > 35) scoreForce = 2;
+    else if (forceKmh > 25) scoreForce = 5;
+    else if (forceKmh > 15) scoreForce = 7;
+    else scoreForce = 10;
+
+    // Score direction : comparer avec orientation idéale
+    let scoreDir = 7; // neutre par défaut
+    if (orientIdeal) {
+        const idealDeg = parseFloat(orientIdeal);
+        if (!isNaN(idealDeg)) {
+            let diff = Math.abs(dirVent - idealDeg);
+            if (diff > 180) diff = 360 - diff;
+            scoreDir = diff < 30 ? 10 : diff < 60 ? 7 : diff < 90 ? 5 : diff < 135 ? 3 : 1;
+        }
+    }
+
+    return (scoreForce * 0.6 + scoreDir * 0.4);
+}
+
 function getColor(plage) {
-    const map = { 'Vert': 'green', 'Bleu': 'blue', 'Orange': 'orange', 'Rouge': 'red' };
-    if (plage.couleur && map[plage.couleur]) return map[plage.couleur];
+    const now   = getDisplayDate();
+    const today = now.toISOString().split('T')[0];
+    const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
+    const meteo = getMeteoAtDate(now);
+
+    if (tide || meteo) {
+        const sMaree = getScoreMaree(plage, tide, now);
+        const sVent  = getScoreVent(plage, meteo);
+        // Pondération : marée 50%, vent 50% (ajustable)
+        const score  = sMaree * 5 + sVent * 5; // sur 100
+
+        if (score >= 75) return 'green';
+        if (score >= 60) return 'blue';
+        if (score >= 40) return 'orange';
+        return 'red';
+    }
+
+    // Fallback : couleur du sheet
+    const colorMap = { 'Vert': 'green', 'Bleu': 'blue', 'Orange': 'orange', 'Rouge': 'red' };
+    if (plage.couleur && colorMap[plage.couleur]) return colorMap[plage.couleur];
     const score = plage.score || 50;
     if (score >= 75) return 'green';
     if (score >= 60) return 'blue';
@@ -245,16 +328,116 @@ function parseCSVLine(line) {
 // ============================================
 // HEADER DATE/HEURE
 // ============================================
+function getDisplayDate() {
+    return selectedDate || new Date();
+}
+
+function updateHeader() {
+    const d = getDisplayDate();
+    const isNow = !selectedDate;
+    document.getElementById('current-date').textContent =
+        d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    document.getElementById('current-time').textContent =
+        d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('header').style.background =
+        isNow ? 'rgba(255,255,255,0.85)' : 'rgba(255,220,100,0.92)';
+}
+
 function initHeader() {
-    function update() {
-        const now = new Date();
-        document.getElementById('current-date').textContent =
-            now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-        document.getElementById('current-time').textContent =
-            now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    updateHeader();
+    // Mise à jour automatique seulement si "maintenant"
+    setInterval(function() {
+        if (!selectedDate) updateHeader();
+    }, 1000);
+
+    document.getElementById('header').addEventListener('click', openCalendar);
+}
+
+// ============================================
+// CALENDRIER
+// ============================================
+function openCalendar() {
+    const panel = document.getElementById('calendar-panel');
+    panel.classList.remove('hidden');
+    buildDateSelector();
+    buildHourSelector();
+}
+
+function closeCalendar() {
+    document.getElementById('calendar-panel').classList.add('hidden');
+}
+
+function buildDateSelector() {
+    const container = document.getElementById('date-selector');
+    container.innerHTML = '';
+    const now = new Date();
+    const current = getDisplayDate();
+
+    for (let i = 0; i < 10; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() + i);
+        const btn = document.createElement('button');
+        btn.className = 'date-btn';
+        const isSameDay = d.toDateString() === current.toDateString();
+        if (isSameDay) btn.classList.add('selected');
+
+        const dayName = d.toLocaleDateString('fr-FR', { weekday: 'short' });
+        btn.innerHTML = `<span class="day-num">${d.getDate()}</span><span class="day-name">${dayName}</span>`;
+        btn.dataset.date = d.toISOString().split('T')[0];
+
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        });
+        container.appendChild(btn);
     }
-    update();
-    setInterval(update, 1000);
+}
+
+function buildHourSelector() {
+    const sel = document.getElementById('hour-selector');
+    sel.innerHTML = '';
+    const current = getDisplayDate();
+    for (let h = 0; h < 24; h++) {
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = h.toString().padStart(2,'0') + 'h00';
+        if (h === current.getHours()) opt.selected = true;
+        sel.appendChild(opt);
+    }
+}
+
+function initCalendar() {
+    document.getElementById('btn-cancel-cal').addEventListener('click', closeCalendar);
+
+    document.getElementById('btn-now').addEventListener('click', function() {
+        selectedDate = null;
+        updateHeader();
+        refreshMarkers();
+        closeCalendar();
+    });
+
+    document.getElementById('btn-validate').addEventListener('click', function() {
+        const selectedBtn = document.querySelector('.date-btn.selected');
+        if (!selectedBtn) return;
+        const dateStr  = selectedBtn.dataset.date;
+        const hour     = parseInt(document.getElementById('hour-selector').value);
+        const d        = new Date(dateStr);
+        d.setHours(hour, 0, 0, 0);
+        selectedDate = d;
+        updateHeader();
+        refreshMarkers();
+        closeCalendar();
+    });
+}
+
+// ============================================
+// ACTUALISATION MARQUEURS SELON DATE
+// ============================================
+function refreshMarkers() {
+    // Supprimer marqueurs actuels
+    plagesMarkers.forEach(m => map.removeLayer(m));
+    plagesMarkers = [];
+    addPlagesMarkers();
 }
 
 // ============================================
@@ -280,6 +463,7 @@ function initMenu() {
 document.addEventListener('DOMContentLoaded', async function() {
     initMap();
     initHeader();
+    initCalendar();
     initMenu();
     await loadData();
     addPlagesMarkers();
@@ -448,7 +632,7 @@ function getTideInfo() {
 function drawTideChart(canvas) {
     if (typeof Chart === 'undefined') return;
 
-    const now   = new Date();
+    const now   = getDisplayDate();
     const today = now.toISOString().split('T')[0];
     const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
     if (!tide) return;
