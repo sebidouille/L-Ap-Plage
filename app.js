@@ -290,6 +290,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 // IMAGE PLAGE
 // ============================================
 function getImagePath(nom) {
+    // Cas particuliers
+    const overrides = {
+        'le-stang': 'stang',
+        'stang': 'stang',
+        'port-st-nicolas': 'port-saint-nicolas',
+        'port-saint-nicolas': 'port-saint-nicolas'
+    };
+
     // Normalise le nom en nom de fichier
     const filename = nom
         .toLowerCase()
@@ -314,7 +322,8 @@ function getImagePath(nom) {
         // Nettoyer tirets en début/fin
         .replace(/^-+|-+$/g, '');
 
-    return `images/${filename}.jpg`;
+    const final = overrides[filename] || filename;
+    return `images/${final}.jpg`;
 }
 
 // ============================================
