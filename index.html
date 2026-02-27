@@ -6,18 +6,14 @@
     <meta name="theme-color" content="#1e88e5">
     <title>L'Ap'Plage - Groix</title>
 
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- Mapbox GL JS CSS -->
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
-
-    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- Bouton burger -->
+    <!-- Burger -->
     <button id="menu-burger">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
             <line x1="3" y1="6" x2="21" y2="6"/>
@@ -26,10 +22,35 @@
         </svg>
     </button>
 
-    <!-- Header date/heure -->
-    <div id="header">
-        <span id="current-date">Chargement...</span>
-        <span id="current-time"></span>
+    <!-- Header date/heure cliquable -->
+    <button id="header" title="Choisir une date">
+        <div id="header-text">
+            <span id="current-date">Chargement...</span>
+            <span id="current-time"></span>
+        </div>
+        <svg id="calendar-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+        </svg>
+    </button>
+
+    <!-- Panneau calendrier -->
+    <div id="calendar-panel" class="hidden">
+        <div id="calendar-header">
+            <button id="btn-now">🔄 Maintenant</button>
+            <button id="btn-cancel-cal">✕</button>
+        </div>
+        <div id="calendar-body">
+            <p class="cal-label">📅 Choisir une date</p>
+            <div id="date-selector"></div>
+            <p class="cal-label">🕐 Choisir une heure</p>
+            <select id="hour-selector"></select>
+        </div>
+        <div id="calendar-footer">
+            <button id="btn-validate">✓ Valider</button>
+        </div>
     </div>
 
     <!-- Menu burger -->
@@ -50,36 +71,15 @@
 
     <!-- Légende -->
     <div id="legend">
-        <div class="legend-item">
-            <span class="dot green"></span>
-            <span class="emoji">😃</span>
-            <span>Excellentes</span>
-        </div>
-        <div class="legend-item">
-            <span class="dot blue"></span>
-            <span class="emoji">🙂</span>
-            <span>Bonnes</span>
-        </div>
-        <div class="legend-item">
-            <span class="dot orange"></span>
-            <span class="emoji">😐</span>
-            <span>Acceptables</span>
-        </div>
-        <div class="legend-item">
-            <span class="dot red"></span>
-            <span class="emoji">☹️</span>
-            <span>Difficiles</span>
-        </div>
+        <div class="legend-item"><span class="dot green"></span><span class="emoji">😃</span><span>Excellentes</span></div>
+        <div class="legend-item"><span class="dot blue"></span><span class="emoji">🙂</span><span>Bonnes</span></div>
+        <div class="legend-item"><span class="dot orange"></span><span class="emoji">😐</span><span>Acceptables</span></div>
+        <div class="legend-item"><span class="dot red"></span><span class="emoji">☹️</span><span>Difficiles</span></div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Mapbox GL JS v2 -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-    <!-- Plugin mapbox-gl-leaflet -->
     <script src="https://unpkg.com/mapbox-gl-leaflet/leaflet-mapbox-gl.js"></script>
-    <!-- App -->
     <script src="app.js"></script>
 </body>
 </html>
-<!-- pas besoin, Chart.js sera dans index.html -->
