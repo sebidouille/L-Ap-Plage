@@ -54,12 +54,12 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
 /* Menu burger panneau */
 #nav-menu {
     position: fixed;
-    top: 0; left: 0; bottom: 0;
+    top: 0; right: 0; bottom: 0;
     width: 280px;
     background: white;
-    box-shadow: 4px 0 12px rgba(0,0,0,0.2);
+    box-shadow: -4px 0 12px rgba(0,0,0,0.2);
     z-index: 2000;
-    transform: translateX(-100%);
+    transform: translateX(100%);
     transition: transform 0.3s ease;
 }
 #nav-menu.show { transform: translateX(0); }
