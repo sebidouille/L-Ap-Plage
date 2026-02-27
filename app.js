@@ -113,14 +113,14 @@ function addPlagesMarkers() {
         });
 
         marker.on('popupopen', function() {
+            // Détruire tous les charts existants avant d'en créer un nouveau
+            Chart.helpers.each(Chart.instances, function(instance) {
+                instance.destroy();
+            });
             setTimeout(function() {
                 const canvas = document.querySelector('.tide-canvas');
-                if (canvas) {
-                    const existing = Chart.getChart(canvas);
-                    if (existing) existing.destroy();
-                    drawTideChart(canvas);
-                }
-            }, 150);
+                if (canvas) drawTideChart(canvas);
+            }, 200);
         });
 
         marker._color = color;
