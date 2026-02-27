@@ -120,6 +120,57 @@ function addPlagesMarkers() {
             setTimeout(function() {
                 const canvas = document.querySelector('.tide-canvas');
                 if (canvas) drawTideChart(canvas);
+
+                // Clic sur popup → ferme
+                const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
+                if (!wrapper) return;
+
+                wrapper.addEventListener('click', function(e) {
+                    if (e.target.tagName !== 'CANVAS') {
+                        map.closePopup();
+                    }
+                });
+
+                // Drag sur popup → déplace la carte
+                let dragging = false, startX, startY, startLng, startLat;
+
+                wrapper.addEventListener('mousedown', function(e) {
+                    if (e.target.tagName === 'CANVAS') return;
+                    dragging = true;
+                    startX = e.clientX; startY = e.clientY;
+                    const c = map.getCenter();
+                    startLng = c.lng; startLat = c.lat;
+                    wrapper.style.cursor = 'grabbing';
+                    e.preventDefault();
+                });
+
+                wrapper.addEventListener('touchstart', function(e) {
+                    if (e.target.tagName === 'CANVAS') return;
+                    dragging = true;
+                    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+                    const c = map.getCenter();
+                    startLng = c.lng; startLat = c.lat;
+                }, { passive: true });
+
+                document.addEventListener('mousemove', function(e) {
+                    if (!dragging) return;
+                    const scale = 0.0001;
+                    map.panTo([startLat + (e.clientY - startY) * scale, startLng - (e.clientX - startX) * scale], { animate: false });
+                });
+
+                document.addEventListener('touchmove', function(e) {
+                    if (!dragging) return;
+                    const scale = 0.0001;
+                    map.panTo([startLat + (e.touches[0].clientY - startY) * scale, startLng - (e.touches[0].clientX - startX) * scale], { animate: false });
+                }, { passive: true });
+
+                document.addEventListener('mouseup', function() {
+                    dragging = false;
+                    if (wrapper) wrapper.style.cursor = 'grab';
+                });
+                document.addEventListener('touchend', function() { dragging = false; });
+
+                wrapper.style.cursor = 'grab';
             }, 200);
         });
 
