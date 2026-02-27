@@ -265,3 +265,18 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     color: #444;
     line-height: 1.4;
 }
+
+/* Bouton appel */
+.btn-call {
+    display: block;
+    margin-top: 10px;
+    padding: 10px;
+    background: #4caf50;
+    color: white;
+    text-align: center;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+}
+.btn-call:hover { background: #388e3c; }
