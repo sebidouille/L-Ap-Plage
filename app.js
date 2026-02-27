@@ -285,6 +285,38 @@ document.addEventListener('DOMContentLoaded', async function() {
     addPlagesMarkers();
 });
 
+
+// ============================================
+// IMAGE PLAGE
+// ============================================
+function getImagePath(nom) {
+    // Normalise le nom en nom de fichier
+    const filename = nom
+        .toLowerCase()
+        // Remplacer accents et caractères spéciaux
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')  // supprime les diacritiques
+        .replace(/[àáâãäå]/g, 'a')
+        .replace(/[èéêë]/g, 'e')
+        .replace(/[ìíîï]/g, 'i')
+        .replace(/[òóôõö]/g, 'o')
+        .replace(/[ùúûü]/g, 'u')
+        .replace(/[ýÿ]/g, 'y')
+        .replace(/[ç]/g, 'c')
+        .replace(/[ñ]/g, 'n')
+        .replace(/[œ]/g, 'oe')
+        .replace(/[æ]/g, 'ae')
+        // Remplacer apostrophes et tirets par tiret
+        .replace(/[''`'\s]+/g, '-')
+        .replace(/[-]+/g, '-')
+        // Supprimer caractères non alphanumériques sauf tirets
+        .replace(/[^a-z0-9-]/g, '')
+        // Nettoyer tirets en début/fin
+        .replace(/^-+|-+$/g, '');
+
+    return `images/${filename}.jpg`;
+}
+
 // ============================================
 // POPUPS PLAGES
 // ============================================
