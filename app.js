@@ -723,10 +723,16 @@ function createBarPopup(bar) {
 }
 
 function addBarsMarkers() {
+    // Noms des restos affichés — on ne double pas
+    const nomsRestos = showRestos ? restosData.map(r => r.Nom || '') : [];
+
     barsData.forEach(function(bar) {
         const lat = parseFloat(bar.Latitude);
         const lon = parseFloat(bar.Longitude);
         if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+
+        // Ne pas afficher si un resto du même nom est déjà affiché
+        if (nomsRestos.includes(bar.Nom || '')) return;
 
         const marker = L.marker([lat, lon], { icon: createBarIcon() })
             .addTo(map)
