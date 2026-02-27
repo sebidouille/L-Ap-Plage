@@ -8,7 +8,8 @@ const CONFIG = {
         MAREES:          138428367,
         RECOMMANDATIONS: 2049933385,
         METEO:           146047806,
-        BARS:            1057932141
+        BARS:            1057932141,
+        RESTOS:          251951681
     },
     GROIX_CENTER: [47.6389, -3.4523],
     ZOOM_LEVEL: 13,
@@ -30,6 +31,9 @@ let meteoData = [];
 let barsData = [];
 let barsMarkers = [];
 let showBars = false;
+let restosData = [];
+let restosMarkers = [];
+let showRestos = false;
 
 // ============================================
 // INIT
@@ -76,18 +80,20 @@ function removePOI(glMap) {
 // CHARGEMENT DONNÉES
 // ============================================
 async function loadData() {
-    const [plagesCSV, mareesCSV, recoCSV, meteoCsv, barsCSV] = await Promise.all([
+    const [plagesCSV, mareesCSV, recoCSV, meteoCsv, barsCSV, restosCSV] = await Promise.all([
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.PLAGES}`).then(r => r.text()),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.MAREES}`).then(r => r.text()),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RECOMMANDATIONS}`).then(r => r.text()),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.METEO}`).then(r => r.text()),
-        fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.BARS}`).then(r => r.text())
+        fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.BARS}`).then(r => r.text()),
+        fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RESTOS}`).then(r => r.text())
     ]);
 
     plagesData = parseCSV(plagesCSV);
     mareesData = parseCSV(mareesCSV);
     meteoData  = parseCSV(meteoCsv);
     barsData   = parseCSV(barsCSV).filter(b => b.Validé === '1' || b.Valide === '1');
+    restosData = parseCSV(restosCSV).filter(r => r.Validé === '1' || r.Valide === '1');
     const recoData = parseCSV(recoCSV);
 
     // Associer couleur et score à chaque plage
@@ -726,6 +732,8 @@ function addBarsMarkers() {
             .addTo(map)
             .bindPopup(createBarPopup(bar), { maxWidth: 280, closeButton: true });
 
+        marker._nomLieu = bar.Nom || '';
+
         marker.on('popupopen', function() {
             setTimeout(function() {
                 const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
@@ -766,8 +774,97 @@ function initMenu() {
                 showBars = !showBars;
                 btn.classList.toggle('active', showBars);
                 showBars ? addBarsMarkers() : removeBarsMarkers();
+            } else if (toggle === 'restaurants') {
+                showRestos = !showRestos;
+                btn.classList.toggle('active', showRestos);
+                showRestos ? addRestosMarkers() : removeRestosMarkers();
             }
             shut();
         });
     });
+}
+
+// ============================================
+// MARQUEURS RESTOS
+// ============================================
+function createRestoIcon() {
+    const html = `<img src="images/resto.png" style="width:36px;height:36px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">`;
+    return L.divIcon({ html: html, className: '', iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36] });
+}
+
+function createRestoPopup(resto) {
+    const nom      = resto.Nom || '';
+    const adresse  = resto.Adresse || '';
+    const horaires = resto.Horaires || '';
+    const tel      = resto.telephone || '';
+    const desc     = resto.Description || '';
+    const photo    = resto.Photo || '';
+    const url      = resto.URL || '';
+    const imgPath  = photo ? `images/${photo}` : '';
+
+    return `
+        <div class="popup-wrap">
+            <div class="popup-header" style="background:linear-gradient(135deg,#e53935,#b71c1c);">${nom}</div>
+            <div class="popup-body popup-scroll">
+                ${imgPath ? `<img src="${imgPath}" alt="${nom}" onerror="this.style.display='none'"
+                     style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:10px;">` : ''}
+                ${adresse  ? `<p>📍 ${adresse}</p>` : ''}
+                ${horaires ? `<p>🕐 ${horaires}</p>` : ''}
+                ${url      ? `<p>🔗 <a href="${url}" target="_blank">Voir la page</a></p>` : ''}
+                ${desc     ? `<p style="color:#666;font-style:italic;">${desc}</p>` : ''}
+                ${tel      ? `<a href="tel:${tel}" class="btn-call">📞 Appeler</a>` : ''}
+            </div>
+        </div>`;
+}
+
+function addRestosMarkers() {
+    // Noms des bars affichés (pour la règle de déduplication)
+    const nomsBarAffichés = showBars
+        ? barsMarkers.map(m => m._nomLieu)
+        : [];
+
+    restosData.forEach(function(resto) {
+        const lat = parseFloat(resto.Latitude);
+        const lon = parseFloat(resto.Longitude);
+        if (!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+
+        const nom = resto.Nom || '';
+
+        // Si un bar avec le même nom est affiché, on le masque
+        if (showBars && nomsBarAffichés.includes(nom)) {
+            // Masquer le marqueur bar correspondant
+            barsMarkers.forEach(function(m) {
+                if (m._nomLieu === nom) map.removeLayer(m);
+            });
+        }
+
+        const marker = L.marker([lat, lon], { icon: createRestoIcon() })
+            .addTo(map)
+            .bindPopup(createRestoPopup(resto), { maxWidth: 280, closeButton: true });
+
+        marker._nomLieu = nom;
+
+        marker.on('popupopen', function() {
+            setTimeout(function() {
+                const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
+                if (!wrapper) return;
+                wrapper.addEventListener('click', function(e) {
+                    if (e.target.tagName !== 'A') map.closePopup();
+                });
+            }, 150);
+        });
+
+        restosMarkers.push(marker);
+    });
+}
+
+function removeRestosMarkers() {
+    restosMarkers.forEach(function(m) { map.removeLayer(m); });
+    restosMarkers = [];
+
+    // Réafficher les bars qui avaient été masqués
+    if (showBars) {
+        removeBarsMarkers();
+        addBarsMarkers();
+    }
 }
