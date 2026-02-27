@@ -240,7 +240,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 function createPopup(plage) {
     const nom         = plage.Nom || plage.nom || 'Plage';
     const mareeIdeale = plage['Marée idéale'] || plage.maree_ideale || '-';
-    const tideInfo    = getTideInfo();
     const chartId     = 'chart-' + Math.random().toString(36).substr(2, 8);
 
     return `
@@ -248,8 +247,7 @@ function createPopup(plage) {
             <div class="popup-header">${nom}</div>
             <div class="popup-body">
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
-                <p><strong>Marée actuelle :</strong> ${tideInfo.arrow} ${tideInfo.status} — ${tideInfo.height}m</p>
-                <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
+<div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
             </div>
         </div>`;
 }
