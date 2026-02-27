@@ -252,12 +252,20 @@ function getColor(plage) {
     const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
     const meteo = getMeteoAtDate(now);
 
-    if (tide || meteo) {
+    if (tide && meteo) {
+        // Recalcul complet marée + vent
         const sMaree = getScoreMaree(plage, tide, now);
         const sVent  = getScoreVent(plage, meteo);
-        // Pondération : marée 50%, vent 50% (ajustable)
         const score  = sMaree * 5 + sVent * 5; // sur 100
-
+        if (score >= 75) return 'green';
+        if (score >= 60) return 'blue';
+        if (score >= 40) return 'orange';
+        return 'red';
+    }
+    if (tide && !meteo) {
+        // Recalcul marée seule
+        const sMaree = getScoreMaree(plage, tide, now);
+        const score  = sMaree * 10;
         if (score >= 75) return 'green';
         if (score >= 60) return 'blue';
         if (score >= 40) return 'orange';
@@ -266,7 +274,8 @@ function getColor(plage) {
 
     // Fallback : couleur du sheet
     const colorMap = { 'Vert': 'green', 'Bleu': 'blue', 'Orange': 'orange', 'Rouge': 'red' };
-    if (plage.couleur && colorMap[plage.couleur]) return colorMap[plage.couleur];
+    const couleur = plage.Couleur || plage.couleur || '';
+    if (couleur && colorMap[couleur]) return colorMap[couleur];
     const score = plage.score || 50;
     if (score >= 75) return 'green';
     if (score >= 60) return 'blue';
