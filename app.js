@@ -323,14 +323,17 @@ function getImagePath(nom) {
 function createPopup(plage) {
     const nom         = plage.Nom || plage.nom || 'Plage';
     const mareeIdeale = plage['Marée idéale'] || plage.maree_ideale || '-';
-    const chartId     = 'chart-' + Math.random().toString(36).substr(2, 8);
+    const imgPath     = getImagePath(nom);
 
     return `
         <div class="popup-wrap">
             <div class="popup-header">${nom}</div>
             <div class="popup-body">
+                <img src="${imgPath}" alt="${nom}"
+                     onerror="this.style.display='none'"
+                     style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:10px;">
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
-<div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
+                <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
             </div>
         </div>`;
 }
