@@ -250,6 +250,55 @@ function createPopup(plage) {
         </div>`;
 }
 
+
+// ============================================
+// ÉVÉNEMENTS MARÉE TRIÉS
+// ============================================
+function getTideEvents(tide) {
+    const ph = t => { if (!t) return null; const m = t.match(/(\d+)h(\d+)/); return m ? +m[1] + +m[2]/60 : null; };
+    const hMax = parseFloat((tide.hauteur_max || '').replace(',', '.')) || 5.3;
+    const hMin = 0.9;
+
+    // Construire la liste des événements avec leur type et heure
+    const events = [
+        { h: ph(tide.bm1_heure), type: 'low',  val: hMin },
+        { h: ph(tide.pm1_heure), type: 'high', val: hMax },
+        { h: ph(tide.bm2_heure), type: 'low',  val: hMin },
+        { h: ph(tide.pm2_heure), type: 'high', val: hMax }
+    ].filter(e => e.h !== null).sort((a, b) => a.h - b.h);
+
+    return { events, hMax, hMin };
+}
+
+function tideHeightAt(hour, events, hMin, hMax) {
+    if (events.length < 2) return (hMax + hMin) / 2;
+
+    // Avant le premier événement
+    if (hour <= events[0].h) {
+        // Extrapoler depuis un événement fictif 12h avant
+        const prev = { h: events[events.length-1].h - 24, val: events[events.length-1].val };
+        const ratio = Math.max(0, Math.min(1, (hour - prev.h) / (events[0].h - prev.h)));
+        const range = Math.abs(events[0].val - prev.val);
+        return prev.val + (events[0].val - prev.val) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
+    }
+
+    // Après le dernier événement
+    if (hour >= events[events.length-1].h) {
+        const last = events[events.length-1];
+        const next = { h: events[0].h + 24, val: events[0].val };
+        const ratio = Math.max(0, Math.min(1, (hour - last.h) / (next.h - last.h)));
+        return last.val + (next.val - last.val) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
+    }
+
+    // Entre deux événements
+    for (let i = 0; i < events.length - 1; i++) {
+        if (hour >= events[i].h && hour <= events[i+1].h) {
+            const ratio = (hour - events[i].h) / (events[i+1].h - events[i].h);
+            return events[i].val + (events[i+1].val - events[i].val) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
+        }
+    }
+    return (hMax + hMin) / 2;
+}
 // ============================================
 // INFO MARÉE ACTUELLE
 // ============================================
@@ -307,40 +356,14 @@ function drawTideChart(canvas) {
     const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
     if (!tide) return;
 
-    const ph   = t => { if (!t) return null; const m = t.match(/(\d+)h(\d+)/); return m ? +m[1] + +m[2]/60 : null; };
-    const bm1  = ph(tide.bm1_heure); const pm1 = ph(tide.pm1_heure);
-    const bm2  = ph(tide.bm2_heure); const pm2 = ph(tide.pm2_heure);
-    const hMax = parseFloat((tide.hauteur_max || "").replace(",", ".")) || 5.3;
-    const hMin = 0.9;
+    const { events, hMax, hMin } = getTideEvents(tide);
 
-    // 1 point par heure = 25 points, plus lisible
     const labels = [];
     const data   = [];
 
     for (let i = 0; i <= 24; i++) {
-        const h = i;
-        labels.push(h + 'h');
-        let height = hMax / 2;
-        if (bm1 !== null && pm1 !== null && bm2 !== null) {
-            if (h <= pm1) {
-                const ratio = Math.min(1, Math.max(0, (h - bm1) / (pm1 - bm1)));
-                height = hMin + (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
-            } else if (h <= bm2) {
-                const ratio = Math.min(1, Math.max(0, (h - pm1) / (bm2 - pm1)));
-                height = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
-            } else if (pm2 !== null && h <= pm2) {
-                const ratio = Math.min(1, Math.max(0, (h - bm2) / (pm2 - bm2)));
-                height = hMin + (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
-            } else if (pm2 !== null) {
-                const ratio = Math.min(1, Math.max(0, (h - pm2) / (24 - pm2)));
-                height = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
-            } else {
-                // pm2 absent : descente depuis bm2 jusqu'à minuit
-                const ratio = Math.min(1, Math.max(0, (h - bm2) / (24 - bm2)));
-                height = hMax - (hMax - hMin) * (0.5 - 0.5 * Math.cos(ratio * Math.PI));
-            }
-        }
-        data.push(parseFloat(Math.max(0, Math.min(hMax, height)).toFixed(2)));
+        labels.push(i + 'h');
+        data.push(parseFloat(tideHeightAt(i, events, hMin, hMax).toFixed(2)));
     }
 
     const currentHour = now.getHours() + now.getMinutes() / 60;
