@@ -253,3 +253,15 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     transition: background 0.2s;
 }
 #btn-validate:hover { background: #1565c0; }
+
+/* Popup scrollable */
+.popup-scroll {
+    max-height: 300px;
+    overflow-y: auto;
+}
+.popup-body p {
+    margin: 6px 0;
+    font-size: 13px;
+    color: #444;
+    line-height: 1.4;
+}
