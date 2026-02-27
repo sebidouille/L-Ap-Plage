@@ -689,13 +689,8 @@ function drawTideChart(canvas) {
 // MARQUEURS BARS
 // ============================================
 function createBarIcon() {
-    const svg = `<svg width="32" height="36" viewBox="0 0 32 36" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="16" cy="34" rx="6" ry="1.5" fill="rgba(0,0,0,0.2)"/>
-        <path d="M16 2 L20 14 L28 14 L22 21 L24 32 L16 27 L8 32 L10 21 L4 14 L12 14 Z"
-              fill="#9c27b0" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-        <text x="16" y="20" text-anchor="middle" font-size="10" fill="white">🍸</text>
-    </svg>`;
-    return L.divIcon({ html: svg, className: '', iconSize: [32,36], iconAnchor: [16,34], popupAnchor: [0,-34] });
+    const html = `<img src="images/bar.png" style="width:36px;height:36px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">`;
+    return L.divIcon({ html: html, className: '', iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36] });
 }
 
 function createBarPopup(bar) {
