@@ -34,22 +34,7 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
 }
 #menu-burger:hover { transform: scale(1.1); }
 
-/* Header date/heure */
-#header {
-    position: fixed;
-    top: 10px; left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(10px);
-    padding: 8px 18px;
-    border-radius: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 1000;
-    display: flex; flex-direction: column; align-items: center;
-    pointer-events: none;
-}
-#current-date { font-size: 12px; color: #555; }
-#current-time { font-size: 16px; font-weight: 600; color: #222; }
+
 
 /* Menu burger panneau */
 #nav-menu {
@@ -162,3 +147,109 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     margin-top: 10px;
     height: 110px;
 }
+
+/* Header cliquable */
+#header {
+    position: fixed;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(10px);
+    padding: 8px 14px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 1000;
+    display: flex; align-items: center; gap: 10px;
+    border: none; cursor: pointer;
+    transition: background 0.2s;
+}
+#header:hover { background: rgba(255,255,255,0.95); }
+
+#header-text {
+    display: flex; flex-direction: column; align-items: center;
+}
+#current-date { font-size: 11px; color: #555; }
+#current-time { font-size: 16px; font-weight: 600; color: #222; }
+
+/* Panneau calendrier */
+#calendar-panel {
+    position: fixed;
+    top: 70px; left: 50%;
+    transform: translateX(-50%);
+    width: 90%; max-width: 380px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    z-index: 2000;
+    overflow: hidden;
+}
+
+#calendar-header {
+    background: linear-gradient(135deg, #1e88e5, #1565c0);
+    padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+#btn-now {
+    background: rgba(255,255,255,0.2);
+    border: none; color: white;
+    padding: 8px 14px; border-radius: 20px;
+    font-size: 14px; cursor: pointer;
+    transition: background 0.2s;
+}
+#btn-now:hover { background: rgba(255,255,255,0.35); }
+#btn-cancel-cal {
+    background: none; border: none;
+    color: white; font-size: 20px; cursor: pointer;
+}
+
+#calendar-body { padding: 16px; }
+
+.cal-label {
+    font-size: 13px; font-weight: 600;
+    color: #1565c0; margin: 12px 0 8px 0;
+}
+
+#date-selector {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px; margin-bottom: 4px;
+}
+.date-btn {
+    padding: 10px 4px;
+    border: 2px solid #e0e0e0;
+    background: white; border-radius: 10px;
+    cursor: pointer; text-align: center;
+    transition: all 0.2s; font-size: 11px;
+}
+.date-btn:hover { border-color: #1e88e5; }
+.date-btn.selected {
+    background: #1e88e5; color: white;
+    border-color: #1e88e5;
+}
+.date-btn .day-num {
+    display: block; font-size: 17px;
+    font-weight: 700; margin-bottom: 2px;
+}
+.date-btn .day-name {
+    display: block; font-size: 9px; opacity: 0.8;
+}
+
+#hour-selector {
+    width: 100%; padding: 10px;
+    border: 2px solid #e0e0e0; border-radius: 10px;
+    font-size: 15px; background: white; cursor: pointer;
+}
+
+#calendar-footer {
+    padding: 12px 16px;
+    background: #f5f5f5;
+    display: flex; justify-content: center;
+}
+#btn-validate {
+    background: #1e88e5; color: white;
+    border: none; padding: 12px 40px;
+    border-radius: 20px; font-size: 15px;
+    font-weight: 600; cursor: pointer;
+    transition: background 0.2s;
+}
+#btn-validate:hover { background: #1565c0; }
