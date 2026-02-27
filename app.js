@@ -102,7 +102,7 @@ function addPlagesMarkers() {
         const color = getColor(plage);
         const marker = L.marker([lat, lon], { icon: createParasolIcon(color, false) })
             .addTo(map)
-            .bindPopup(createPopup(plage), { maxWidth: 280, closeButton: true });
+            .bindPopup(() => createPopup(plage), { maxWidth: 280, closeButton: true });
 
         marker.on('click', function() {
             if (selectedMarker && selectedMarker !== marker) {
@@ -115,8 +115,12 @@ function addPlagesMarkers() {
         marker.on('popupopen', function() {
             setTimeout(function() {
                 const canvas = document.querySelector('.tide-canvas');
-                if (canvas) drawTideChart(canvas);
-            }, 300);
+                if (canvas) {
+                    const existing = Chart.getChart(canvas);
+                    if (existing) existing.destroy();
+                    drawTideChart(canvas);
+                }
+            }, 150);
         });
 
         marker._color = color;
