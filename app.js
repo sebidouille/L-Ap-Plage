@@ -25,7 +25,8 @@ let glLayer;
 let plagesData = [];
 let mareesData = [];
 let plagesMarkers = [];
-let selectedMarker = null;
+let selectedPlageMarker = null;
+let selectedPOIMarker = null;
 let selectedDate = null; // null = maintenant
 let meteoData = [];
 let barsData = [];
@@ -126,9 +127,9 @@ function addPlagesMarkers() {
 
         marker._resetIcon = () => marker.setIcon(createParasolIcon(color, false));
         marker.on('click', function() {
-            if (selectedMarker && selectedMarker !== marker) selectedMarker._resetIcon();
+            if (selectedPlageMarker && selectedPlageMarker !== marker) selectedPlageMarker._resetIcon();
             marker.setIcon(createParasolIcon(color, true));
-            selectedMarker = marker;
+            selectedPlageMarker = marker;
         });
 
         marker.on('popupopen', function() {
@@ -247,16 +248,15 @@ function getColor(plage) {
 
 function createParasolIcon(color, selected) {
     const colors = { green: '#4caf50', blue: '#2196f3', orange: '#ff9800', red: '#f44336' };
-    const border = selected ? '#9c27b0' : 'white';
-    const bw     = selected ? '2.5' : '1.5';
+    const filter = selected ? 'drop-shadow(0 0 5px #9c27b0) drop-shadow(0 0 5px #9c27b0)' : 'none';
     const svg = `
-        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="filter:${filter}">
             <g transform="rotate(15,16,20)">
                 <ellipse cx="16" cy="30" rx="6" ry="1.5" fill="rgba(0,0,0,0.2)"/>
                 <line x1="16" y1="14" x2="16" y2="29" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>
                 <circle cx="16" cy="3" r="1.2" fill="#666"/>
                 <path d="M4 14 Q4 4,16 2 Q28 4,28 14"
-                      fill="${colors[color]}" stroke="${border}" stroke-width="${bw}" stroke-linejoin="round"/>
+                      fill="${colors[color]}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
                 <path d="M16 2 L16 14" stroke="rgba(255,255,255,0.3)" stroke-width="1.2"/>
                 <path d="M11 4 L12 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
                 <path d="M21 4 L20 14" stroke="rgba(0,0,0,0.15)" stroke-width="1"/>
@@ -311,7 +311,7 @@ function updateHeader() {
     document.getElementById('current-time').textContent =
         d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     document.getElementById('header').style.background =
-        isNow ? 'rgba(255,255,255,0.85)' : 'rgba(255,220,100,0.92)';
+        isNow ? 'rgba(255,255,255,0.25)' : 'rgba(255,220,100,0.45)';
 }
 
 function initHeader() {
@@ -814,9 +814,9 @@ function addBarsMarkers() {
         marker._nomLieu = bar.Nom || '';
         marker._resetIcon = () => marker.setIcon(createBarIcon(false));
         marker.on('click', function() {
-            if (selectedMarker && selectedMarker !== marker) selectedMarker._resetIcon();
+            if (selectedPOIMarker && selectedPOIMarker !== marker) selectedPOIMarker._resetIcon();
             marker.setIcon(createBarIcon(true));
-            selectedMarker = marker;
+            selectedPOIMarker = marker;
         });
 
         marker.on('popupopen', function() {
@@ -831,7 +831,7 @@ function addBarsMarkers() {
 }
 
 function removeBarsMarkers() {
-    if (barsMarkers.includes(selectedMarker)) selectedMarker = null;
+    if (barsMarkers.includes(selectedPOIMarker)) selectedPOIMarker = null;
     barsMarkers.forEach(function(m) { map.removeLayer(m); });
     barsMarkers = [];
 }
@@ -900,7 +900,7 @@ function createRestoPopup(resto) {
                 ${horaires ? `<p>🕐 ${horaires}</p>` : ''}
                 ${url      ? `<p>🔗 <a href="${url}" target="_blank">Voir la page</a></p>` : ''}
                 ${desc     ? `<p style="color:#666;font-style:italic;">${desc}</p>` : ''}
-                ${tel      ? `<a href="tel:${tel}" class="btn-call">📞 Appeler</a>` : ''}
+                ${tel ? `<div class="call-row"><a href="tel:${tel}" class="btn-call">📞 Appeler</a><span class="call-number">${tel}</span></div>` : ''}
             </div>
         </div>`;
 }
@@ -927,9 +927,9 @@ function addRestosMarkers() {
         marker._nomLieu = nom;
         marker._resetIcon = () => marker.setIcon(createRestoIcon(false));
         marker.on('click', function() {
-            if (selectedMarker && selectedMarker !== marker) selectedMarker._resetIcon();
+            if (selectedPOIMarker && selectedPOIMarker !== marker) selectedPOIMarker._resetIcon();
             marker.setIcon(createRestoIcon(true));
-            selectedMarker = marker;
+            selectedPOIMarker = marker;
         });
 
         marker.on('popupopen', function() {
@@ -944,7 +944,7 @@ function addRestosMarkers() {
 }
 
 function removeRestosMarkers() {
-    if (restosMarkers.includes(selectedMarker)) selectedMarker = null;
+    if (restosMarkers.includes(selectedPOIMarker)) selectedPOIMarker = null;
     restosMarkers.forEach(function(m) { map.removeLayer(m); });
     restosMarkers = [];
 
