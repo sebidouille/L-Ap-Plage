@@ -34,6 +34,9 @@ let showBars = false;
 let restosData = [];
 let restosMarkers = [];
 let showRestos = false;
+let geoWatchId = null;
+let geoMarker = null;
+let geoActive = false;
 
 // ============================================
 // INIT
@@ -121,73 +124,20 @@ function addPlagesMarkers() {
             .addTo(map)
             .bindPopup(() => createPopup(plage), { maxWidth: 280, closeButton: true });
 
+        marker._resetIcon = () => marker.setIcon(createParasolIcon(color, false));
         marker.on('click', function() {
-            if (selectedMarker && selectedMarker !== marker) {
-                selectedMarker.setIcon(createParasolIcon(selectedMarker._color, false));
-            }
+            if (selectedMarker && selectedMarker !== marker) selectedMarker._resetIcon();
             marker.setIcon(createParasolIcon(color, true));
             selectedMarker = marker;
         });
 
         marker.on('popupopen', function() {
-            // Détruire tous les charts existants avant d'en créer un nouveau
-            Chart.helpers.each(Chart.instances, function(instance) {
-                instance.destroy();
-            });
+            Chart.helpers.each(Chart.instances, function(instance) { instance.destroy(); });
             setTimeout(function() {
                 const canvas = document.querySelector('.tide-canvas');
                 if (canvas) drawTideChart(canvas);
-
-                // Clic sur popup → ferme
                 const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
-                if (!wrapper) return;
-
-                wrapper.addEventListener('click', function(e) {
-                    if (e.target.tagName !== 'CANVAS') {
-                        map.closePopup();
-                    }
-                });
-
-                // Drag sur popup → déplace la carte
-                let dragging = false, startX, startY, startLng, startLat;
-
-                wrapper.addEventListener('mousedown', function(e) {
-                    if (e.target.tagName === 'CANVAS') return;
-                    dragging = true;
-                    startX = e.clientX; startY = e.clientY;
-                    const c = map.getCenter();
-                    startLng = c.lng; startLat = c.lat;
-                    wrapper.style.cursor = 'grabbing';
-                    e.preventDefault();
-                });
-
-                wrapper.addEventListener('touchstart', function(e) {
-                    if (e.target.tagName === 'CANVAS') return;
-                    dragging = true;
-                    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-                    const c = map.getCenter();
-                    startLng = c.lng; startLat = c.lat;
-                }, { passive: true });
-
-                document.addEventListener('mousemove', function(e) {
-                    if (!dragging) return;
-                    const scale = 0.0001;
-                    map.panTo([startLat + (e.clientY - startY) * scale, startLng - (e.clientX - startX) * scale], { animate: false });
-                });
-
-                document.addEventListener('touchmove', function(e) {
-                    if (!dragging) return;
-                    const scale = 0.0001;
-                    map.panTo([startLat + (e.touches[0].clientY - startY) * scale, startLng - (e.touches[0].clientX - startX) * scale], { animate: false });
-                }, { passive: true });
-
-                document.addEventListener('mouseup', function() {
-                    dragging = false;
-                    if (wrapper) wrapper.style.cursor = 'grab';
-                });
-                document.addEventListener('touchend', function() { dragging = false; });
-
-                wrapper.style.cursor = 'grab';
+                if (wrapper) enablePopupDrag(wrapper, { skipTag: 'CANVAS' });
             }, 200);
         });
 
@@ -471,9 +421,47 @@ document.addEventListener('DOMContentLoaded', async function() {
     initHeader();
     initCalendar();
     initMenu();
+    initGeolocate();
     await loadData();
     addPlagesMarkers();
 });
+
+// ============================================
+// GÉOLOCALISATION
+// ============================================
+function initGeolocate() {
+    document.getElementById('btn-geolocate').addEventListener('click', function() {
+        geoActive ? stopGeolocate() : startGeolocate();
+    });
+}
+
+function startGeolocate() {
+    if (!navigator.geolocation) return;
+    geoActive = true;
+    document.getElementById('btn-geolocate').classList.add('active');
+
+    geoWatchId = navigator.geolocation.watchPosition(
+        function(pos) {
+            const { latitude: lat, longitude: lon } = pos.coords;
+            const icon = L.divIcon({ html: '<div class="geo-dot"></div>', className: '', iconSize: [18,18], iconAnchor: [9,9] });
+            if (!geoMarker) {
+                geoMarker = L.marker([lat, lon], { icon, zIndexOffset: 500 }).addTo(map);
+                map.setView([lat, lon], map.getZoom());
+            } else {
+                geoMarker.setLatLng([lat, lon]);
+            }
+        },
+        function() { stopGeolocate(); },
+        { enableHighAccuracy: true, maximumAge: 10000 }
+    );
+}
+
+function stopGeolocate() {
+    geoActive = false;
+    document.getElementById('btn-geolocate').classList.remove('active');
+    if (geoWatchId !== null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
+    if (geoMarker) { map.removeLayer(geoMarker); geoMarker = null; }
+}
 
 
 // ============================================
@@ -485,7 +473,8 @@ function getImagePath(nom) {
         'le-stang': 'stang',
         'stang': 'stang',
         'port-st-nicolas': 'port-saint-nicolas',
-        'port-saint-nicolas': 'port-saint-nicolas'
+        'port-saint-nicolas': 'port-saint-nicolas',
+        'porh-morvil': 'port-morvil'
     };
 
     // Normalise le nom en nom de fichier
@@ -519,19 +508,45 @@ function getImagePath(nom) {
 // ============================================
 // POPUPS PLAGES
 // ============================================
+function degToCardinal(deg) {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+    return dirs[Math.round(deg / 45) % 8];
+}
+
 function createPopup(plage) {
     const nom         = plage.Nom || plage.nom || 'Plage';
     const mareeIdeale = plage['Marée idéale'] || plage.maree_ideale || '-';
     const imgPath     = getImagePath(nom);
+    const color       = getColor(plage);
+
+    const badgeMap = {
+        green:  { bg: '#4caf50', label: 'Excellentes', emoji: '😃' },
+        blue:   { bg: '#2196f3', label: 'Bonnes',      emoji: '🙂' },
+        orange: { bg: '#ff9800', label: 'Acceptables', emoji: '😐' },
+        red:    { bg: '#f44336', label: 'Difficiles',  emoji: '☹️' }
+    };
+    const badge = badgeMap[color] || badgeMap.blue;
+
+    const meteo = getMeteoAtDate(getDisplayDate());
+    let ventHtml = '';
+    if (meteo) {
+        const force = Math.round(parseFloat((meteo.force_vent_kmh || '').replace(',', '.')) || 0);
+        const dir   = degToCardinal(parseFloat(meteo.direction_vent) || 0);
+        ventHtml = `<p>💨 <strong>${force} km/h</strong> · ${dir}</p>`;
+    }
 
     return `
         <div class="popup-wrap">
-            <div class="popup-header">${nom}</div>
+            <div class="popup-header">
+                <span>${nom}</span>
+                <span class="popup-badge" style="background:${badge.bg}">${badge.emoji} ${badge.label}</span>
+            </div>
             <div class="popup-body">
                 <img src="${imgPath}" alt="${nom}"
                      onerror="this.style.display='none'"
                      style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:10px;">
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
+                ${ventHtml}
                 <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
             </div>
         </div>`;
@@ -692,11 +707,69 @@ function drawTideChart(canvas) {
 }
 
 // ============================================
+// INTERACTION POPUP PARTAGÉE (drag-to-pan + click-to-close)
+// ============================================
+function enablePopupDrag(wrapper, opts) {
+    opts = opts || {};
+    let dragging = false, moved = false, startX, startY, startLng, startLat;
+
+    wrapper.addEventListener('mousedown', function(e) {
+        if (e.target.tagName === 'CANVAS' || e.target.tagName === 'A') return;
+        dragging = true; moved = false;
+        startX = e.clientX; startY = e.clientY;
+        const c = map.getCenter();
+        startLng = c.lng; startLat = c.lat;
+        wrapper.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+
+    wrapper.addEventListener('touchstart', function(e) {
+        if (e.target.tagName === 'CANVAS') return;
+        dragging = true; moved = false;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        const c = map.getCenter();
+        startLng = c.lng; startLat = c.lat;
+    }, { passive: true });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        moved = true;
+        const scale = 0.0001;
+        map.panTo([startLat + (e.clientY - startY) * scale, startLng - (e.clientX - startX) * scale], { animate: false });
+    });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!dragging) return;
+        moved = true;
+        const scale = 0.0001;
+        map.panTo([startLat + (e.touches[0].clientY - startY) * scale, startLng - (e.touches[0].clientX - startX) * scale], { animate: false });
+    }, { passive: true });
+
+    document.addEventListener('mouseup', function() {
+        dragging = false;
+        if (wrapper) wrapper.style.cursor = 'grab';
+    });
+    document.addEventListener('touchend', function() { dragging = false; });
+
+    wrapper.addEventListener('click', function(e) {
+        if (moved) { moved = false; return; }
+        if (opts.skipTag && e.target.tagName === opts.skipTag) return;
+        if (e.target.tagName === 'CANVAS') return;
+        map.closePopup();
+    });
+
+    wrapper.style.cursor = 'grab';
+}
+
+// ============================================
 // MARQUEURS BARS
 // ============================================
-function createBarIcon() {
-    const html = `<img src="images/bar.png" style="width:36px;height:36px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">`;
-    return L.divIcon({ html: html, className: '', iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36] });
+function createBarIcon(selected) {
+    const filter = selected
+        ? 'drop-shadow(0 0 5px #9c27b0) drop-shadow(0 0 5px #9c27b0)'
+        : 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))';
+    const html = `<img src="images/bar.png" style="width:36px;height:36px;filter:${filter};">`;
+    return L.divIcon({ html, className: '', iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36] });
 }
 
 function createBarPopup(bar) {
@@ -734,17 +807,22 @@ function addBarsMarkers() {
         // Ne pas afficher si un resto du même nom est déjà affiché
         if (nomsRestos.includes(bar.Nom || '')) return;
 
-        const marker = L.marker([lat, lon], { icon: createBarIcon() })
+        const marker = L.marker([lat, lon], { icon: createBarIcon(false) })
             .addTo(map)
             .bindPopup(createBarPopup(bar), { maxWidth: 280, closeButton: true });
 
         marker._nomLieu = bar.Nom || '';
+        marker._resetIcon = () => marker.setIcon(createBarIcon(false));
+        marker.on('click', function() {
+            if (selectedMarker && selectedMarker !== marker) selectedMarker._resetIcon();
+            marker.setIcon(createBarIcon(true));
+            selectedMarker = marker;
+        });
 
         marker.on('popupopen', function() {
             setTimeout(function() {
                 const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
-                if (!wrapper) return;
-                wrapper.addEventListener('click', function() { map.closePopup(); });
+                if (wrapper) enablePopupDrag(wrapper, {});
             }, 150);
         });
 
@@ -753,6 +831,7 @@ function addBarsMarkers() {
 }
 
 function removeBarsMarkers() {
+    if (barsMarkers.includes(selectedMarker)) selectedMarker = null;
     barsMarkers.forEach(function(m) { map.removeLayer(m); });
     barsMarkers = [];
 }
@@ -793,9 +872,12 @@ function initMenu() {
 // ============================================
 // MARQUEURS RESTOS
 // ============================================
-function createRestoIcon() {
-    const html = `<img src="images/resto.png" style="width:36px;height:36px;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.3));">`;
-    return L.divIcon({ html: html, className: '', iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36] });
+function createRestoIcon(selected) {
+    const filter = selected
+        ? 'drop-shadow(0 0 5px #9c27b0) drop-shadow(0 0 5px #9c27b0)'
+        : 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))';
+    const html = `<img src="images/resto.png?v=2" style="width:36px;height:36px;filter:${filter};">`;
+    return L.divIcon({ html, className: '', iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36] });
 }
 
 function createRestoPopup(resto) {
@@ -838,19 +920,22 @@ function addRestosMarkers() {
             });
         }
 
-        const marker = L.marker([lat, lon], { icon: createRestoIcon() })
+        const marker = L.marker([lat, lon], { icon: createRestoIcon(false) })
             .addTo(map)
             .bindPopup(createRestoPopup(resto), { maxWidth: 280, closeButton: true });
 
         marker._nomLieu = nom;
+        marker._resetIcon = () => marker.setIcon(createRestoIcon(false));
+        marker.on('click', function() {
+            if (selectedMarker && selectedMarker !== marker) selectedMarker._resetIcon();
+            marker.setIcon(createRestoIcon(true));
+            selectedMarker = marker;
+        });
 
         marker.on('popupopen', function() {
             setTimeout(function() {
                 const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
-                if (!wrapper) return;
-                wrapper.addEventListener('click', function(e) {
-                    if (e.target.tagName !== 'A') map.closePopup();
-                });
+                if (wrapper) enablePopupDrag(wrapper, { skipTag: 'A' });
             }, 150);
         });
 
@@ -859,14 +944,13 @@ function addRestosMarkers() {
 }
 
 function removeRestosMarkers() {
+    if (restosMarkers.includes(selectedMarker)) selectedMarker = null;
     restosMarkers.forEach(function(m) { map.removeLayer(m); });
     restosMarkers = [];
 
-    // Réafficher les marqueurs bars qui avaient été masqués
+    // Reconstruire les markers bars (showRestos est déjà false ici)
     if (showBars) {
-        const nomsRestos = restosData.map(r => r.Nom || '');
-        barsMarkers.forEach(function(m) {
-            if (nomsRestos.includes(m._nomLieu)) map.addLayer(m);
-        });
+        removeBarsMarkers();
+        addBarsMarkers();
     }
 }
