@@ -1,0 +1,24 @@
+{
+  "name": "L'Ap'Plage - Groix",
+  "short_name": "Ap'Plage",
+  "description": "Conditions de plage en temps réel sur l'île de Groix",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e88e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "images/bar.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "images/resto.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
