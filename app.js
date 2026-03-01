@@ -544,7 +544,7 @@ function createPopup(plage) {
             <div class="popup-body">
                 <img src="${imgPath}" alt="${nom}"
                      onerror="this.style.display='none'"
-                     style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:10px;">
+                     style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;margin-bottom:10px;">
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
                 ${ventHtml}
                 <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
@@ -786,7 +786,7 @@ function createBarPopup(bar) {
             <div class="popup-header" style="background:linear-gradient(135deg,#9c27b0,#6a1b9a);">${nom}</div>
             <div class="popup-body popup-scroll">
                 ${imgPath ? `<img src="${imgPath}" alt="${nom}" onerror="this.style.display='none'"
-                     style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:10px;">` : ''}
+                     style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;margin-bottom:10px;">` : ''}
                 ${adresse  ? `<p>📍 ${adresse}</p>` : ''}
                 ${horaires ? `<p>🕐 ${horaires}</p>` : ''}
                 ${tel      ? `<p>📞 ${tel}</p>` : ''}
@@ -895,7 +895,7 @@ function createRestoPopup(resto) {
             <div class="popup-header" style="background:linear-gradient(135deg,#e53935,#b71c1c);">${nom}</div>
             <div class="popup-body popup-scroll">
                 ${imgPath ? `<img src="${imgPath}" alt="${nom}" onerror="this.style.display='none'"
-                     style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:10px;">` : ''}
+                     style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;margin-bottom:10px;">` : ''}
                 ${adresse  ? `<p>📍 ${adresse}</p>` : ''}
                 ${horaires ? `<p>🕐 ${horaires}</p>` : ''}
                 ${url      ? `<p>🔗 <a href="${url}" target="_blank">Voir la page</a></p>` : ''}
