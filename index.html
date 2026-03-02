@@ -18,14 +18,9 @@
 </head>
 <body>
 
-    <!-- Burger -->
-    <button id="menu-burger">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-    </button>
+    <!-- Boutons toggle -->
+    <button id="btn-bars" class="map-toggle-btn"><img src="images/bar.png" style="width:20px;height:20px;"> Où boire</button>
+    <button id="btn-restos" class="map-toggle-btn"><img src="images/resto.png?v=2" style="width:20px;height:20px;"> Où manger</button>
 
     <!-- Géolocalisation -->
     <button id="btn-geolocate" title="Ma position">
@@ -61,28 +56,16 @@
         </div>
     </div>
 
-    <!-- Menu burger -->
-    <div id="nav-menu">
-        <div id="nav-menu-header">
-            <span>L'Ap'Plage</span>
-            <button id="close-menu">✕</button>
-        </div>
-        <div id="nav-menu-items">
-            <button class="nav-item" data-toggle="bars"><img src="images/bar.png" style="width:24px;height:24px;"> Où boire un coup</button>
-            <button class="nav-item" data-toggle="restaurants"><img src="images/resto.png?v=2" style="width:24px;height:24px;"> Où manger</button>
-        </div>
-    </div>
-    <div id="menu-overlay"></div>
 
     <!-- Carte -->
     <div id="map"></div>
 
     <!-- Légende -->
     <div id="legend">
-        <div class="legend-item"><span class="dot green"></span><span class="emoji">😃</span><span>Excellentes</span></div>
-        <div class="legend-item"><span class="dot blue"></span><span class="emoji">🙂</span><span>Bonnes</span></div>
-        <div class="legend-item"><span class="dot orange"></span><span class="emoji">😐</span><span>Acceptables</span></div>
-        <div class="legend-item"><span class="dot red"></span><span class="emoji">☹️</span><span>Difficiles</span></div>
+        <div class="legend-item"><span class="dot green"></span><span>Au Top!</span></div>
+        <div class="legend-item"><span class="dot blue"></span><span>Pas mal</span></div>
+        <div class="legend-item"><span class="dot orange"></span><span>Bof...</span></div>
+        <div class="legend-item"><span class="dot red"></span><span>A éviter</span></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

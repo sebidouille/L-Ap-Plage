@@ -310,8 +310,7 @@ function updateHeader() {
         d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     document.getElementById('current-time').textContent =
         d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('header').style.background =
-        isNow ? 'rgba(255,255,255,0.25)' : 'rgba(255,220,100,0.45)';
+    document.getElementById('header').classList.toggle('date-custom', !isNow);
 }
 
 function initHeader() {
@@ -520,10 +519,10 @@ function createPopup(plage) {
     const color       = getColor(plage);
 
     const badgeMap = {
-        green:  { bg: '#4caf50', label: 'Excellentes', emoji: '😃' },
-        blue:   { bg: '#2196f3', label: 'Bonnes',      emoji: '🙂' },
-        orange: { bg: '#ff9800', label: 'Acceptables', emoji: '😐' },
-        red:    { bg: '#f44336', label: 'Difficiles',  emoji: '☹️' }
+        green:  { gradient: 'linear-gradient(135deg, #43a047, #1b5e20)', label: 'Au Top!' },
+        blue:   { gradient: 'linear-gradient(135deg, #1e88e5, #1565c0)', label: 'Pas mal' },
+        orange: { gradient: 'linear-gradient(135deg, #fb8c00, #e65100)', label: 'Bof...' },
+        red:    { gradient: 'linear-gradient(135deg, #e53935, #b71c1c)', label: 'A éviter' }
     };
     const badge = badgeMap[color] || badgeMap.blue;
 
@@ -537,14 +536,14 @@ function createPopup(plage) {
 
     return `
         <div class="popup-wrap">
-            <div class="popup-header">
+            <div class="popup-header" style="background:${badge.gradient}">
                 <span>${nom}</span>
-                <span class="popup-badge" style="background:${badge.bg}">${badge.emoji} ${badge.label}</span>
+                <span class="popup-badge">${badge.label}</span>
             </div>
             <div class="popup-body">
                 <img src="${imgPath}" alt="${nom}"
                      onerror="this.style.display='none'"
-                     style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;margin-bottom:10px;">
+                     style="display:block;margin:0 auto 12px;width:88%;max-height:260px;object-fit:contain;border-radius:12px;">
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
                 ${ventHtml}
                 <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
@@ -840,32 +839,19 @@ function removeBarsMarkers() {
 // TOGGLE BARS DANS LE MENU
 // ============================================
 function initMenu() {
-    const burger  = document.getElementById('menu-burger');
-    const menu    = document.getElementById('nav-menu');
-    const overlay = document.getElementById('menu-overlay');
-    const close   = document.getElementById('close-menu');
+    const btnBars   = document.getElementById('btn-bars');
+    const btnRestos = document.getElementById('btn-restos');
 
-    const open = () => { menu.classList.add('show'); overlay.classList.add('show'); };
-    const shut = () => { menu.classList.remove('show'); overlay.classList.remove('show'); };
+    btnBars.addEventListener('click', function() {
+        showBars = !showBars;
+        btnBars.classList.toggle('active', showBars);
+        showBars ? addBarsMarkers() : removeBarsMarkers();
+    });
 
-    burger.addEventListener('click', open);
-    close.addEventListener('click', shut);
-    overlay.addEventListener('click', shut);
-
-    document.querySelectorAll('.nav-item').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const toggle = btn.getAttribute('data-toggle');
-            if (toggle === 'bars') {
-                showBars = !showBars;
-                btn.classList.toggle('active', showBars);
-                showBars ? addBarsMarkers() : removeBarsMarkers();
-            } else if (toggle === 'restaurants') {
-                showRestos = !showRestos;
-                btn.classList.toggle('active', showRestos);
-                showRestos ? addRestosMarkers() : removeRestosMarkers();
-            }
-            shut();
-        });
+    btnRestos.addEventListener('click', function() {
+        showRestos = !showRestos;
+        btnRestos.classList.toggle('active', showRestos);
+        showRestos ? addRestosMarkers() : removeRestosMarkers();
     });
 }
 
@@ -892,7 +878,7 @@ function createRestoPopup(resto) {
 
     return `
         <div class="popup-wrap">
-            <div class="popup-header" style="background:linear-gradient(135deg,#e53935,#b71c1c);">${nom}</div>
+            <div class="popup-header" style="background:linear-gradient(135deg,#9c27b0,#6a1b9a);">${nom}</div>
             <div class="popup-body popup-scroll">
                 ${imgPath ? `<img src="${imgPath}" alt="${nom}" onerror="this.style.display='none'"
                      style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;margin-bottom:10px;">` : ''}
