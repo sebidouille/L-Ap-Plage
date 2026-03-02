@@ -1,4 +1,4 @@
-const CACHE = 'applage-v20260302153438';
+const CACHE = 'applage-v20260302154651';
 
 const PRECACHE = [
     './',

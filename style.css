@@ -37,12 +37,12 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
 .map-toggle-btn:hover { background: rgba(255,255,255,0.15); }
 .map-toggle-btn.active { background: rgba(255,255,255,0.25); }
 #btn-restos { top: 10px; }
-#btn-bars   { top: 39px; }
+#btn-bars   { top: 45px; }
 
 /* Bouton géolocalisation */
 #btn-geolocate {
     position: fixed;
-    top: 74px; right: 8px;
+    top: 81px; right: 8px;
     width: 28px; height: 28px;
     border-radius: 50%;
     border: 1.5px solid rgba(255,255,255,0.7);
