@@ -138,7 +138,7 @@ function addPlagesMarkers() {
                 const canvas = document.querySelector('.tide-canvas');
                 if (canvas) drawTideChart(canvas);
                 const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
-                if (wrapper) enablePopupDrag(wrapper, { skipTag: 'CANVAS' });
+                if (wrapper) enablePopupDrag(wrapper, {});
             }, 200);
         });
 
@@ -513,10 +513,11 @@ function degToCardinal(deg) {
 }
 
 function createPopup(plage) {
-    const nom         = plage.Nom || plage.nom || 'Plage';
-    const mareeIdeale = plage['Marée idéale'] || plage.maree_ideale || '-';
-    const imgPath     = getImagePath(nom);
-    const color       = getColor(plage);
+    const nom           = plage.Nom || plage.nom || 'Plage';
+    const mareeIdeale   = plage['Marée idéale'] || plage.maree_ideale || '-';
+    const accessibilite = plage['Accessibilité'] || '';
+    const imgPath       = getImagePath(nom);
+    const color         = getColor(plage);
 
     const badgeMap = {
         green:  { gradient: 'linear-gradient(135deg, #43a047, #1b5e20)', label: 'Au Top!' },
@@ -545,6 +546,7 @@ function createPopup(plage) {
                      onerror="this.style.display='none'"
                      style="display:block;margin:0 auto 12px;width:88%;max-height:260px;object-fit:contain;border-radius:12px;">
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
+                ${accessibilite === 'Difficile' ? `<p>♿ <strong>Accessibilité :</strong> Difficile</p>` : ''}
                 ${ventHtml}
                 <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
             </div>
@@ -713,7 +715,8 @@ function enablePopupDrag(wrapper, opts) {
     let dragging = false, moved = false, startX, startY, startLng, startLat;
 
     wrapper.addEventListener('mousedown', function(e) {
-        if (e.target.tagName === 'CANVAS' || e.target.tagName === 'A') return;
+        if (e.target.tagName === 'A') return;
+        if (opts.skipTag && e.target.tagName === opts.skipTag) return;
         dragging = true; moved = false;
         startX = e.clientX; startY = e.clientY;
         const c = map.getCenter();
@@ -723,7 +726,7 @@ function enablePopupDrag(wrapper, opts) {
     });
 
     wrapper.addEventListener('touchstart', function(e) {
-        if (e.target.tagName === 'CANVAS') return;
+        if (opts.skipTag && e.target.tagName === opts.skipTag) return;
         dragging = true; moved = false;
         startX = e.touches[0].clientX; startY = e.touches[0].clientY;
         const c = map.getCenter();

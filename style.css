@@ -1,4 +1,4 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Averia Libre', sans-serif; font-weight: 300; }
 
 :root {
     --blue:   #1e88e5;
@@ -25,17 +25,21 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     display: flex; align-items: center; gap: 5px;
     padding: 4px 8px;
     border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.7);
-    background: transparent;
-    color: white;
+    border: none;
+    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #333;
     font-size: 11px; font-weight: 500;
     cursor: pointer;
     z-index: 1000;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-    transition: background 0.2s;
+    transition: background 0.2s, color 0.2s;
 }
-.map-toggle-btn:hover { background: rgba(255,255,255,0.15); }
-.map-toggle-btn.active { background: rgba(255,255,255,0.25); }
+.map-toggle-btn:hover { background: rgba(255,255,255,0.4); }
+.map-toggle-btn.active {
+    background: rgba(156,39,176,0.6);
+    color: white;
+}
 #btn-restos { top: 10px; }
 #btn-bars   { top: 45px; }
 
@@ -45,19 +49,20 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     top: 81px; right: 8px;
     width: 28px; height: 28px;
     border-radius: 50%;
-    border: 1.5px solid rgba(255,255,255,0.7);
-    background: transparent;
+    border: none;
+    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: none;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     z-index: 1000;
-    color: white;
+    color: #333;
     transition: background 0.2s, color 0.2s;
 }
-#btn-geolocate:hover { background: rgba(255,255,255,0.15); }
+#btn-geolocate:hover { background: rgba(255,255,255,0.4); }
 #btn-geolocate.active {
-    background: rgba(156,39,176,0.5);
-    border-color: rgba(156,39,176,0.9);
+    background: rgba(156,39,176,0.6);
     color: white;
 }
 
@@ -159,30 +164,29 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     position: fixed;
     top: 10px; left: 50%;
     transform: translateX(-50%);
-    background: transparent;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     padding: 6px 14px;
     border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.7);
+    border: none;
     z-index: 1000;
     display: flex; align-items: center; gap: 10px;
     cursor: pointer;
-    transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+    transition: background 0.3s, color 0.3s;
 }
-#header:hover { background: rgba(255,255,255,0.15); }
+#header:hover { background: rgba(255,255,255,0.4); }
 #header.date-custom {
-    background: rgba(156,39,176,0.35);
-    border-color: rgba(255,255,255,0.9);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(156,39,176,0.6);
 }
 
 #header-text {
     display: flex; flex-direction: column; align-items: center;
 }
-#current-date { font-size: 11px; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-#current-time { font-size: 16px; font-weight: 600; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+#current-date { font-size: 11px; color: #555; }
+#current-time { font-size: 16px; font-weight: 600; color: #222; }
+#header.date-custom #current-date { color: rgba(255,255,255,0.85); }
+#header.date-custom #current-time { color: white; }
 
 /* Panneau calendrier */
 #calendar-panel {
