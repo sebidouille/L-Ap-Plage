@@ -133,7 +133,7 @@ function addPlagesMarkers() {
         });
 
         marker.on('popupopen', function() {
-            Chart.helpers.each(Chart.instances, function(instance) { instance.destroy(); });
+            Object.values(Chart.instances).forEach(function(instance) { instance.destroy(); });
             setTimeout(function() {
                 const canvas = document.querySelector('.tide-canvas');
                 if (canvas) drawTideChart(canvas);

@@ -75,7 +75,11 @@
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+            if (location.hostname === 'localhost') {
+                navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+            } else {
+                window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+            }
         }
     </script>
 </body>
