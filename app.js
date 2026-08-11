@@ -794,8 +794,8 @@ function createBarIcon(selected) {
     const filter = selected
         ? 'drop-shadow(0 0 5px #9c27b0) drop-shadow(0 0 5px #9c27b0)'
         : 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))';
-    const html = `<img src="images/bar.png" style="width:36px;height:36px;filter:${filter};">`;
-    return L.divIcon({ html, className: '', iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36] });
+    const html = `<img src="images/bar.png" style="height:36px;width:auto;filter:${filter};">`;
+    return L.divIcon({ html, className: '', iconSize: [25,36], iconAnchor: [13,36], popupAnchor: [0,-36] });
 }
 
 function createBarPopup(bar) {
@@ -889,8 +889,8 @@ function createRestoIcon(selected) {
     const filter = selected
         ? 'drop-shadow(0 0 5px #9c27b0) drop-shadow(0 0 5px #9c27b0)'
         : 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))';
-    const html = `<img src="images/resto.png?v=2" style="width:36px;height:36px;filter:${filter};">`;
-    return L.divIcon({ html, className: '', iconSize: [36,36], iconAnchor: [18,36], popupAnchor: [0,-36] });
+    const html = `<img src="images/resto.png?v=2" style="height:36px;width:auto;filter:${filter};">`;
+    return L.divIcon({ html, className: '', iconSize: [25,36], iconAnchor: [13,36], popupAnchor: [0,-36] });
 }
 
 function createRestoPopup(resto) {
