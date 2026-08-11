@@ -525,6 +525,16 @@ function degToCardinal(deg) {
     return dirs[Math.round(deg / 45) % 8];
 }
 
+function windArrowSvg(deg, color) {
+    const colorMap = { green: '#4caf50', blue: '#2196f3', orange: '#ff9800', red: '#f44336' };
+    const fill = colorMap[color] || '#1e88e5';
+    return `<svg width="20" height="20" viewBox="0 0 24 24"
+        style="transform:rotate(${deg}deg);display:inline-block;vertical-align:middle;margin:0 2px"
+        fill="${fill}">
+        <polygon points="12,2 18,22 12,17 6,22"/>
+    </svg>`;
+}
+
 function createPopup(plage) {
     const nom           = plage.Nom || plage.nom || 'Plage';
     const mareeIdeale   = plage['Marée idéale'] || plage.maree_ideale || '-';
@@ -543,9 +553,10 @@ function createPopup(plage) {
     const meteo = getMeteoAtDate(getDisplayDate());
     let ventHtml = '';
     if (meteo) {
-        const force = Math.round(parseFloat((meteo.force_vent_kmh || '').replace(',', '.')) || 0);
-        const dir   = degToCardinal(parseFloat(meteo.direction_vent) || 0);
-        ventHtml = `<p>💨 <strong>${force} km/h</strong> · ${dir}</p>`;
+        const force  = Math.round(parseFloat((meteo.force_vent_kmh || '').replace(',', '.')) || 0);
+        const dirDeg = parseFloat(meteo.direction_vent) || 0;
+        const dir    = degToCardinal(dirDeg);
+        ventHtml = `<p>${windArrowSvg(dirDeg, color)} <strong>${force} km/h</strong> · ${dir}</p>`;
     }
 
     return `
