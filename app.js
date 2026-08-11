@@ -665,11 +665,16 @@ function getTideInfo() {
 // GRAPHIQUE MARÉE
 // ============================================
 function drawTideChart(canvas) {
-    if (typeof Chart === 'undefined') return;
+    console.log('[marée] Chart défini:', typeof Chart !== 'undefined');
+    console.log('[marée] mareesData.length:', mareesData.length);
+    if (mareesData.length > 0) console.log('[marée] exemple date brute:', mareesData[0].date, '→', normalizeDateStr(mareesData[0].date));
+    if (typeof Chart === 'undefined') { console.log('[marée] Chart.js non chargé!'); return; }
 
     const now   = getDisplayDate();
     const today = now.toISOString().split('T')[0];
+    console.log('[marée] aujourd\'hui:', today);
     const tide  = mareesData.find(m => normalizeDateStr(m.date) === today);
+    console.log('[marée] données trouvées pour aujourd\'hui:', !!tide, tide);
     if (!tide) return;
 
     const { events, hMax, hMin } = getTideEvents(tide);
