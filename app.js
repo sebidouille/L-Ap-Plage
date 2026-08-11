@@ -133,9 +133,11 @@ function addPlagesMarkers() {
         });
 
         marker.on('popupopen', function() {
-            Object.values(Chart.instances).forEach(function(instance) { instance.destroy(); });
+            console.log('[popup] ouvert, Chart.instances:', typeof Chart !== 'undefined' ? Object.keys(Chart.instances).length : 'Chart indéfini');
+            try { Object.values(Chart.instances).forEach(function(instance) { instance.destroy(); }); } catch(e) { console.error('[popup] erreur destroy:', e); }
             setTimeout(function() {
                 const canvas = document.querySelector('.tide-canvas');
+                console.log('[popup] canvas trouvé:', !!canvas);
                 if (canvas) drawTideChart(canvas);
                 const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
                 if (wrapper) enablePopupDrag(wrapper, {});
