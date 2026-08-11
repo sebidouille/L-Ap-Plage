@@ -212,7 +212,7 @@ function getScoreVent(plage, meteo) {
 function getColor(plage) {
     const now   = getDisplayDate();
     const today = now.toISOString().split('T')[0];
-    const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
+    const tide  = mareesData.find(m => normalizeDateStr(m.date) === today);
     const meteo = getMeteoAtDate(now);
 
     if (tide && meteo) {
@@ -265,6 +265,19 @@ function createParasolIcon(color, selected) {
             </g>
         </svg>`;
     return L.divIcon({ html: svg, className: '', iconSize: [32,32], iconAnchor: [16,30], popupAnchor: [0,-30] });
+}
+
+// ============================================
+// UTILITAIRES DATE
+// ============================================
+function normalizeDateStr(dateStr) {
+    if (!dateStr) return '';
+    // Déjà au format YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.substring(0, 10);
+    // Format DD/MM/YYYY (export Google Sheets locale française)
+    const m = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    return dateStr;
 }
 
 // ============================================
@@ -608,7 +621,7 @@ function tideHeightAt(hour, events, hMin, hMax) {
 function getTideInfo() {
     const now   = new Date();
     const today = now.toISOString().split('T')[0];
-    const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
+    const tide  = mareesData.find(m => normalizeDateStr(m.date) === today);
 
     if (!tide) return { arrow: '↗️', status: 'Montante', height: '—' };
 
@@ -656,7 +669,7 @@ function drawTideChart(canvas) {
 
     const now   = getDisplayDate();
     const today = now.toISOString().split('T')[0];
-    const tide  = mareesData.find(m => m.date && m.date.startsWith(today));
+    const tide  = mareesData.find(m => normalizeDateStr(m.date) === today);
     if (!tide) return;
 
     const { events, hMax, hMin } = getTideEvents(tide);
