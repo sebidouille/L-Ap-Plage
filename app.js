@@ -133,11 +133,9 @@ function addPlagesMarkers() {
         });
 
         marker.on('popupopen', function() {
-            console.log('[popup] ouvert, Chart.instances:', typeof Chart !== 'undefined' ? Object.keys(Chart.instances).length : 'Chart indéfini');
-            try { Object.values(Chart.instances).forEach(function(instance) { instance.destroy(); }); } catch(e) { console.error('[popup] erreur destroy:', e); }
+            Object.values(Chart.instances).forEach(function(instance) { instance.destroy(); });
             setTimeout(function() {
                 const canvas = document.querySelector('.tide-canvas');
-                console.log('[popup] canvas trouvé:', !!canvas);
                 if (canvas) drawTideChart(canvas);
                 const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
                 if (wrapper) enablePopupDrag(wrapper, {});
@@ -667,16 +665,11 @@ function getTideInfo() {
 // GRAPHIQUE MARÉE
 // ============================================
 function drawTideChart(canvas) {
-    console.log('[marée] Chart défini:', typeof Chart !== 'undefined');
-    console.log('[marée] mareesData.length:', mareesData.length);
-    if (mareesData.length > 0) console.log('[marée] exemple date brute:', mareesData[0].date, '→', normalizeDateStr(mareesData[0].date));
-    if (typeof Chart === 'undefined') { console.log('[marée] Chart.js non chargé!'); return; }
+    if (typeof Chart === 'undefined') return;
 
     const now   = getDisplayDate();
     const today = now.toISOString().split('T')[0];
-    console.log('[marée] aujourd\'hui:', today);
     const tide  = mareesData.find(m => normalizeDateStr(m.date) === today);
-    console.log('[marée] données trouvées pour aujourd\'hui:', !!tide, tide);
     if (!tide) return;
 
     const { events, hMax, hMin } = getTideEvents(tide);
