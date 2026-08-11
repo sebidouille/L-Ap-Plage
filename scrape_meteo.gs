@@ -128,9 +128,10 @@ function scrapeMeteoGroix() {
 // DÉCLENCHEUR AUTOMATIQUE TOUTES LES 6H
 // ============================================================
 function createMeteoTrigger() {
-  // Supprimer les anciens déclencheurs de cette fonction
+  // Supprimer tous les anciens déclencheurs liés à la météo (tous noms possibles)
+  var meteoFunctions = ['scrapeMeteoGroix', 'mettreAJourMeteo', 'updateMeteo', 'fetchMeteo'];
   ScriptApp.getProjectTriggers().forEach(function(t) {
-    if (t.getHandlerFunction() === 'scrapeMeteoGroix') {
+    if (meteoFunctions.indexOf(t.getHandlerFunction()) !== -1) {
       ScriptApp.deleteTrigger(t);
     }
   });

@@ -37,6 +37,7 @@ let restosMarkers = [];
 let showRestos = false;
 let geoWatchId = null;
 let geoMarker = null;
+let geoCircle = null;
 let geoActive = false;
 
 // ============================================
@@ -454,17 +455,20 @@ function startGeolocate() {
 
     geoWatchId = navigator.geolocation.watchPosition(
         function(pos) {
-            const { latitude: lat, longitude: lon } = pos.coords;
+            const { latitude: lat, longitude: lon, accuracy } = pos.coords;
             const icon = L.divIcon({ html: '<div class="geo-dot"></div>', className: '', iconSize: [18,18], iconAnchor: [9,9] });
             if (!geoMarker) {
                 geoMarker = L.marker([lat, lon], { icon, zIndexOffset: 500 }).addTo(map);
+                geoCircle = L.circle([lat, lon], { radius: accuracy, color: '#9c27b0', fillColor: '#9c27b0', fillOpacity: 0.1, weight: 1 }).addTo(map);
                 map.setView([lat, lon], map.getZoom());
             } else {
                 geoMarker.setLatLng([lat, lon]);
+                geoCircle.setLatLng([lat, lon]);
+                geoCircle.setRadius(accuracy);
             }
         },
         function() { stopGeolocate(); },
-        { enableHighAccuracy: true, maximumAge: 10000 }
+        { enableHighAccuracy: true, maximumAge: 0 }
     );
 }
 
@@ -473,6 +477,7 @@ function stopGeolocate() {
     document.getElementById('btn-geolocate').classList.remove('active');
     if (geoWatchId !== null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
     if (geoMarker) { map.removeLayer(geoMarker); geoMarker = null; }
+    if (geoCircle) { map.removeLayer(geoCircle); geoCircle = null; }
 }
 
 
