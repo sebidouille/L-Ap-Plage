@@ -14,7 +14,9 @@ const CONFIG = {
     GROIX_CENTER: [47.6389, -3.4523],
     ZOOM_LEVEL: 13,
     MAPBOX_TOKEN: 'pk.eyJ1Ijoicm91eHNlYiIsImEiOiJjbW0xd3dvcTAwMTZzMnJzZXdyYXFpMjBvIn0.Tq3uFh1jH5n-7OXcfm7MtQ',
-    MAPBOX_STYLE: 'mapbox://styles/mapbox/outdoors-v12'
+    MAPBOX_STYLE: (window.OMBRE_MODE || window.MAREE_MODE)
+        ? 'mapbox://styles/mapbox/satellite-streets-v12'
+        : 'mapbox://styles/mapbox/outdoors-v12'
 };
 
 // ============================================
@@ -84,10 +86,43 @@ function removePOI(glMap) {
 // ============================================
 // CHARGEMENT DONNÉES
 // ============================================
+let marineData = []; // données houle OpenMeteo (fetché directement)
+
+async function fetchMarineData() {
+    const url = 'https://marine-api.open-meteo.com/v1/marine'
+        + '?latitude=47.6389&longitude=-3.4523'
+        + '&hourly=wave_height,wave_direction,wave_period'
+        + '&timezone=Europe%2FParis&forecast_days=7';
+    try {
+        const data = await fetch(url).then(r => r.json());
+        const times = data.hourly.time;
+        marineData = times.map((t, i) => ({
+            timestamp:        t,
+            hauteur_vagues:   data.hourly.wave_height[i]    ?? '',
+            direction_vagues: data.hourly.wave_direction[i] ?? '',
+            periode_vagues:   data.hourly.wave_period[i]    ?? ''
+        }));
+    } catch (e) {
+        console.warn('Marine API indisponible', e);
+    }
+}
+
+function getMarineAtDate(date) {
+    if (!marineData.length) return null;
+    const target = date.getTime();
+    let best = null, bestDiff = Infinity;
+    marineData.forEach(row => {
+        const t = new Date(row.timestamp).getTime();
+        const diff = Math.abs(t - target);
+        if (diff < bestDiff) { bestDiff = diff; best = row; }
+    });
+    return best;
+}
+
 async function loadData() {
-    const [plagesCSV, mareesCSV, recoCSV, meteoCsv, barsCSV, restosCSV] = await Promise.all([
+    const [plagesCSV, mareesJSON, recoCSV, meteoCsv, barsCSV, restosCSV] = await Promise.all([
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.PLAGES}`).then(r => r.text()),
-        fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.MAREES}`).then(r => r.text()),
+        fetch('data/marees.json').then(r => r.ok ? r.json() : []).catch(() => []),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RECOMMANDATIONS}`).then(r => r.text()),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.METEO}`).then(r => r.text()),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.BARS}`).then(r => r.text()),
@@ -95,7 +130,7 @@ async function loadData() {
     ]);
 
     plagesData = parseCSV(plagesCSV);
-    mareesData = parseCSV(mareesCSV);
+    mareesData = mareesJSON;   // JSON array, pas besoin de parseCSV
     meteoData  = parseCSV(meteoCsv);
     barsData   = parseCSV(barsCSV).filter(b => b.Validé === '1' || b.Valide === '1');
     restosData = parseCSV(restosCSV).filter(r => r.Validé === '1' || r.Valide === '1');
@@ -109,7 +144,8 @@ async function loadData() {
         }
     });
 
-    console.log(`${plagesData.length} plages chargées`);
+    await fetchMarineData();
+    console.log(`${plagesData.length} plages chargées, ${marineData.length}h marine`);
 }
 
 // ============================================
@@ -182,6 +218,35 @@ function getScoreMaree(plage, tide, date) {
     return 5;
 }
 
+function getScoreHoule(plage, marine) {
+    if (!marine) return 5;
+    const hauteur  = parseFloat(marine.hauteur_vagues)  || 0;
+    const dirHoule = parseFloat(marine.direction_vagues) || 0;
+    const orientIdeal = plage['Orientation houle idéale'] || '';
+
+    // Score hauteur : calme = 10, agité = 0
+    let scoreH;
+    if      (hauteur <= 0.3) scoreH = 10;
+    else if (hauteur <= 0.6) scoreH = 8;
+    else if (hauteur <= 1.0) scoreH = 6;
+    else if (hauteur <= 1.5) scoreH = 3;
+    else if (hauteur <= 2.0) scoreH = 1;
+    else                     scoreH = 0;
+
+    // Score direction vs exposition idéale de la plage
+    let scoreDir = 5; // neutre si pas de donnée
+    if (orientIdeal) {
+        const idealDeg = parseFloat(orientIdeal);
+        if (!isNaN(idealDeg)) {
+            let diff = Math.abs(dirHoule - idealDeg);
+            if (diff > 180) diff = 360 - diff;
+            scoreDir = diff < 30 ? 10 : diff < 60 ? 7 : diff < 90 ? 5 : diff < 135 ? 3 : 1;
+        }
+    }
+
+    return scoreH * 0.6 + scoreDir * 0.4;
+}
+
 function getScoreVent(plage, meteo) {
     if (!meteo) return 5;
     const dirVent   = parseFloat(meteo.direction_vent) || 0;
@@ -217,17 +282,17 @@ function getColor(plage) {
     const meteo = getMeteoAtDate(now);
 
     if (tide && meteo) {
-        // Recalcul complet marée + vent
-        const sMaree = getScoreMaree(plage, tide, now);
-        const sVent  = getScoreVent(plage, meteo);
-        const score  = sMaree * 5 + sVent * 5; // sur 100
+        const sMaree  = getScoreMaree(plage, tide, now);
+        const sVent   = getScoreVent(plage, meteo);
+        const marine  = getMarineAtDate(now);
+        const sHoule  = getScoreHoule(plage, marine);
+        const score  = sMaree * 4 + sVent * 3 + sHoule * 3; // sur 100
         if (score >= 75) return 'green';
         if (score >= 60) return 'blue';
         if (score >= 40) return 'orange';
         return 'red';
     }
     if (tide && !meteo) {
-        // Recalcul marée seule
         const sMaree = getScoreMaree(plage, tide, now);
         const score  = sMaree * 10;
         if (score >= 75) return 'green';
@@ -372,16 +437,18 @@ function buildDateSelector() {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
+            buildHourSelector(new Date(btn.dataset.date));
         });
         container.appendChild(btn);
     }
 }
 
-function buildHourSelector() {
+function buildHourSelector(dateOverride) {
     const sel = document.getElementById('hour-selector');
     sel.innerHTML = '';
-    const current = getDisplayDate();
+    const current = dateOverride || getDisplayDate();
     for (let h = 0; h < 24; h++) {
+        if (window.hourFilter && !window.hourFilter(h, current)) continue;
         const opt = document.createElement('option');
         opt.value = h;
         opt.textContent = h.toString().padStart(2,'0') + 'h00';
@@ -397,6 +464,8 @@ function initCalendar() {
         selectedDate = null;
         updateHeader();
         refreshMarkers();
+        if (window.updateSun3D)
+            window.updateSun3D(new Date());
         closeCalendar();
     });
 
@@ -410,6 +479,8 @@ function initCalendar() {
         selectedDate = d;
         updateHeader();
         refreshMarkers();
+        if (window.updateSun3D)
+            window.updateSun3D(d);
         closeCalendar();
     });
 }
@@ -418,10 +489,10 @@ function initCalendar() {
 // ACTUALISATION MARQUEURS SELON DATE
 // ============================================
 function refreshMarkers() {
-    // Supprimer marqueurs actuels
     plagesMarkers.forEach(m => map.removeLayer(m));
     plagesMarkers = [];
     addPlagesMarkers();
+    if (window.onDateChanged) window.onDateChanged(getDisplayDate());
 }
 
 
@@ -540,6 +611,17 @@ function windArrowSvg(deg, color) {
     </svg>`;
 }
 
+function houleArrowSvg(deg) {
+    // Flèche vague : bleu marine, forme arrondie en bas
+    return `<svg width="20" height="20" viewBox="0 0 24 24"
+        style="transform:rotate(${deg}deg);display:inline-block;vertical-align:middle;margin:0 2px"
+        fill="none" stroke="#0d47a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3 L12 18"/>
+        <path d="M6 12 L12 3 L18 12"/>
+        <path d="M5 20 Q8.5 17 12 20 Q15.5 23 19 20"/>
+    </svg>`;
+}
+
 function createPopup(plage) {
     const nom           = plage.Nom || plage.nom || 'Plage';
     const mareeIdeale   = plage['Marée idéale'] || plage.maree_ideale || '-';
@@ -557,11 +639,18 @@ function createPopup(plage) {
 
     const meteo = getMeteoAtDate(getDisplayDate());
     let ventHtml = '';
+    let houleHtml = '';
     if (meteo) {
-        const force  = Math.round(parseFloat((meteo.force_vent_kmh || '').replace(',', '.')) || 0);
-        const dirDeg = parseFloat(meteo.direction_vent) || 0;
-        const dir    = degToCardinal(dirDeg);
-        ventHtml = `<p>${windArrowSvg(dirDeg, color)} <strong>${force} km/h</strong> · ${dir}</p>`;
+        const force   = Math.round(parseFloat((meteo.force_vent_kmh || '').replace(',', '.')) || 0);
+        const dirVent = parseFloat(meteo.direction_vent) || 0;
+        ventHtml = `<p><strong>Vent</strong> ${windArrowSvg(dirVent, color)} ${force} km/h · ${degToCardinal(dirVent)}</p>`;
+
+        const marine   = getMarineAtDate(getDisplayDate());
+        if (marine) {
+            const hauteur  = parseFloat(marine.hauteur_vagues)  || 0;
+            const dirHoule = parseFloat(marine.direction_vagues) || 0;
+            houleHtml = `<p><strong>Houle</strong> ${houleArrowSvg(dirHoule)} ${hauteur.toFixed(1)} m · ${degToCardinal(dirHoule)}</p>`;
+        }
     }
 
     return `
@@ -577,6 +666,7 @@ function createPopup(plage) {
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
                 ${accessibilite === 'Difficile' ? `<p>♿ <strong>Accessibilité :</strong> Difficile</p>` : ''}
                 ${ventHtml}
+                ${houleHtml}
                 <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
             </div>
         </div>`;
@@ -868,22 +958,58 @@ function removeBarsMarkers() {
 }
 
 // ============================================
-// TOGGLE BARS DANS LE MENU
+// STACK COUCHES
 // ============================================
 function initMenu() {
-    const btnBars   = document.getElementById('btn-bars');
-    const btnRestos = document.getElementById('btn-restos');
+    const stackBtn   = document.getElementById('stack-btn');
+    const stackPanel = document.getElementById('stack-panel');
 
-    btnBars.addEventListener('click', function() {
+    // Ouvrir / fermer le panneau
+    stackBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isOpen = !stackPanel.classList.contains('hidden');
+        stackPanel.classList.toggle('hidden', isOpen);
+        stackBtn.classList.toggle('open', !isOpen);
+    });
+
+    // Fermer en cliquant ailleurs
+    document.addEventListener('click', function() {
+        stackPanel.classList.add('hidden');
+        stackBtn.classList.remove('open');
+    });
+    stackPanel.addEventListener('click', function(e) { e.stopPropagation(); });
+
+    // Où boire
+    document.getElementById('layer-bars').addEventListener('click', function() {
         showBars = !showBars;
-        btnBars.classList.toggle('active', showBars);
+        this.classList.toggle('active', showBars);
         showBars ? addBarsMarkers() : removeBarsMarkers();
     });
 
-    btnRestos.addEventListener('click', function() {
+    // Où manger
+    document.getElementById('layer-restos').addEventListener('click', function() {
         showRestos = !showRestos;
-        btnRestos.classList.toggle('active', showRestos);
+        this.classList.toggle('active', showRestos);
         showRestos ? addRestosMarkers() : removeRestosMarkers();
+    });
+
+    // Ombres → ombre.html (sauf si déjà sur cette page)
+    if (!window.OMBRE_MODE) {
+        document.getElementById('layer-ombres').addEventListener('click', function() {
+            window.location.href = 'ombre.html';
+        });
+    }
+
+    // Hauteur de mer → ombre.html (combiné ombres+marée, sauf si déjà sur cette page)
+    if (!window.MAREE_MODE) {
+        document.getElementById('layer-maree').addEventListener('click', function() {
+            window.location.href = 'ombre.html';
+        });
+    }
+
+    // Événements → à venir
+    document.getElementById('layer-events').addEventListener('click', function() {
+        // TODO
     });
 }
 

@@ -18,35 +18,75 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     z-index: 1;
 }
 
-/* Boutons toggle boire / manger */
-.map-toggle-btn {
+/* Stack couches */
+#layers-stack {
     position: fixed;
-    right: 8px;
-    display: flex; align-items: center; gap: 5px;
-    padding: 4px 8px;
-    border-radius: 14px;
+    top: 10px; right: 8px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+#stack-btn {
+    width: 32px; height: 32px;
+    border-radius: 10px;
     border: none;
     background: rgba(255,255,255,0.25);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    color: #333;
-    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    z-index: 1000;
-    transition: background 0.2s, color 0.2s;
+    color: #333;
+    transition: background 0.2s;
 }
-.map-toggle-btn:hover { background: rgba(255,255,255,0.4); }
-.map-toggle-btn.active {
-    background: rgba(156,39,176,0.6);
-    color: white;
+#stack-btn:hover  { background: rgba(255,255,255,0.4); }
+#stack-btn.open   { background: rgba(255,255,255,0.5); }
+
+#stack-panel {
+    background: rgba(255,255,255,0.22);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-width: 168px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
-#btn-restos { top: 10px; }
-#btn-bars   { top: 45px; }
+
+.stack-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    transition: background 0.15s;
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;
+}
+.stack-row:last-child { border-bottom: none; }
+.stack-row:hover      { background: rgba(255,255,255,0.45); }
+
+.layer-ind {
+    width: 11px; height: 11px;
+    border: 2px solid #aaa;
+    border-radius: 2px;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+.stack-row.active .layer-ind {
+    background: #4caf50;
+    border-color: #4caf50;
+}
 
 /* Bouton géolocalisation */
 #btn-geolocate {
     position: fixed;
-    top: 81px; right: 8px;
+    top: 52px; right: 8px;
     width: 28px; height: 28px;
     border-radius: 50%;
     border: none;
@@ -170,7 +210,7 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     padding: 6px 14px;
     border-radius: 20px;
     border: none;
-    z-index: 1000;
+    z-index: 3000;
     display: flex; align-items: center; gap: 10px;
     cursor: pointer;
     transition: background 0.3s, color 0.3s;
@@ -198,7 +238,7 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     background: white;
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-    z-index: 2000;
+    z-index: 3000;
     overflow: hidden;
     display: flex; flex-direction: column;
 }
@@ -308,3 +348,4 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
     font-size: 13px;
     color: #444;
 }
+
