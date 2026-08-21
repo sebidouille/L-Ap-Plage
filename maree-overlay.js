@@ -1,17 +1,21 @@
-// maree-overlay.js — Couche GeoJSON marée pour maree.html / ombre.html
-// Doit être chargé AVANT app.js
+// maree-overlay.js — Couche GeoJSON marée
+// Chargé AVANT app.js. Si chargé en premier → calque primaire (actif d'entrée).
+// Si chargé en second (OMBRE_MODE déjà défini) → calque secondaire (inactif d'entrée).
 
-// Signaler à app.js qu'on est sur la page marée
 window.MAREE_MODE = true;
+
+// Primaire = aucun autre overlay n'était déjà chargé
+const TIDE_PRIMARY = !window.OMBRE_MODE;
 
 (function () {
     'use strict';
 
-    const H_MIN_CM  = 60;    // premier niveau non vide
+    const H_MIN_CM  = 60;
     const H_MAX_CM  = 620;
     const H_STEP_CM = 20;
 
     let mareeLayer  = null;
+    let tideVisible = TIDE_PRIMARY;
     let mareesLocal = [];
 
     // ── Interpolation marée (copie de app.js) ───────────────────────────────
@@ -50,33 +54,25 @@ window.MAREE_MODE = true;
         return (hMax + hMin) / 2;
     }
 
-    // ── Sélection du niveau précalculé ──────────────────────────────────────
     function selectLevel(date) {
         const today = date.toISOString().split('T')[0];
         const tide  = mareesLocal.find(m => (m.date || '').substring(0, 10) === today);
         if (!tide) return null;
-
         const hour = date.getHours() + date.getMinutes() / 60;
         const { events, hMin, hMax } = getTideEvents(tide);
-        const h_above_zh = tideHeightAt(hour, events, hMin, hMax);  // mètres au-dessus du ZH
-
-        // Arrondir au pas de 20 cm le plus proche
+        const h_above_zh = tideHeightAt(hour, events, hMin, hMax);
         const h_cm = Math.round(h_above_zh * 100 / H_STEP_CM) * H_STEP_CM;
         return Math.max(H_MIN_CM, Math.min(H_MAX_CM, h_cm));
     }
 
-    // ── Chargement de la couche GeoJSON ─────────────────────────────────────
     function loadMareeLayer(date) {
+        if (!tideVisible) return;
         if (!date) date = new Date();
         if (mareeLayer) { map.removeLayer(mareeLayer); mareeLayer = null; }
-
         const level = selectLevel(date);
         if (level === null) return;
-
         const levelStr = String(level).padStart(3, '0');
-        const path = `data/marees_niveaux/maree_groix_${levelStr}cm.geojson`;
-
-        fetch(path)
+        fetch(`data/marees_niveaux/maree_groix_${levelStr}cm.geojson`)
             .then(r => r.ok ? r.json() : null)
             .then(data => {
                 if (!data || !data.features || !data.features.length) return;
@@ -93,30 +89,42 @@ window.MAREE_MODE = true;
             .catch(() => {});
     }
 
-    // Hook chaînable : appelle l'éventuel handler précédent, puis charge la marée
-    const _prevOnDateChanged = window.onDateChanged;
+    // onDateChanged chaînable
+    const _prev = window.onDateChanged;
     window.onDateChanged = function (date) {
-        if (typeof _prevOnDateChanged === 'function') _prevOnDateChanged(date);
+        if (typeof _prev === 'function') _prev(date);
         loadMareeLayer(date);
     };
 
-    // ── Init ─────────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
         const rowMaree = document.getElementById('layer-maree');
         if (rowMaree) {
-            rowMaree.classList.add('active');
+            rowMaree.classList.toggle('active', tideVisible);
+
             rowMaree.addEventListener('click', function () {
-                window.location.href = 'index.html';
+                tideVisible = !tideVisible;
+                rowMaree.classList.toggle('active', tideVisible);
+
+                if (tideVisible) {
+                    loadMareeLayer(typeof getDisplayDate === 'function' ? getDisplayDate() : new Date());
+                } else {
+                    if (mareeLayer) { map.removeLayer(mareeLayer); mareeLayer = null; }
+                    // Retour index si plus aucun calque actif
+                    const shadowActive = document.getElementById('layer-ombres').classList.contains('active');
+                    if (!shadowActive) window.location.href = 'index.html';
+                }
             });
         }
 
-        // Charger les données marée indépendamment
+        // Toujours charger les données (nécessaire pour activation à la demande)
         fetch('data/marees.json')
             .then(r => r.ok ? r.json() : [])
             .catch(() => [])
             .then(data => {
                 mareesLocal = data;
-                loadMareeLayer(typeof getDisplayDate === 'function' ? getDisplayDate() : new Date());
+                if (tideVisible) {
+                    loadMareeLayer(typeof getDisplayDate === 'function' ? getDisplayDate() : new Date());
+                }
             });
     });
 

@@ -508,6 +508,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     initGeolocate();
     await loadData();
     addPlagesMarkers();
+    initFromLastEvent();
 });
 
 // ============================================
@@ -979,6 +980,20 @@ function initMenu() {
     });
     stackPanel.addEventListener('click', function(e) { e.stopPropagation(); });
 
+    // Accueil — prioritaire, désactive tout et retourne à l'index
+    document.getElementById('layer-accueil').addEventListener('click', function() {
+        if (window.OMBRE_MODE || window.MAREE_MODE) {
+            window.location.href = 'index.html';
+        } else {
+            showBars = false;
+            showRestos = false;
+            document.getElementById('layer-bars').classList.remove('active');
+            document.getElementById('layer-restos').classList.remove('active');
+            removeBarsMarkers();
+            removeRestosMarkers();
+        }
+    });
+
     // Où boire
     document.getElementById('layer-bars').addEventListener('click', function() {
         showBars = !showBars;
@@ -1000,17 +1015,44 @@ function initMenu() {
         });
     }
 
-    // Hauteur de mer → ombre.html (combiné ombres+marée, sauf si déjà sur cette page)
+    // Hauteur de mer → maree.html (sauf si déjà sur cette page)
     if (!window.MAREE_MODE) {
         document.getElementById('layer-maree').addEventListener('click', function() {
-            window.location.href = 'ombre.html';
+            window.location.href = 'maree.html';
         });
     }
 
-    // Événements → à venir
+    // Événements → evenements.html
     document.getElementById('layer-events').addEventListener('click', function() {
-        // TODO
+        window.location.href = 'evenements.html';
     });
+}
+
+// ============================================
+// MISE EN ÉVIDENCE DEPUIS LA PAGE ÉVÈNEMENTS
+// ============================================
+function initFromLastEvent() {
+    const dernierEtab = localStorage.getItem('dernier_etablissement_consulte');
+    if (!dernierEtab) return;
+    localStorage.removeItem('dernier_etablissement_consulte');
+
+    // Activer les deux layers pour trouver l'établissement
+    showBars   = true;
+    showRestos = true;
+    document.getElementById('layer-bars').classList.add('active');
+    document.getElementById('layer-restos').classList.add('active');
+    addBarsMarkers();
+    addRestosMarkers();
+
+    // Trouver le marqueur correspondant
+    const allMarkers = [...barsMarkers, ...restosMarkers];
+    const marker = allMarkers.find(m => m._nomLieu === dernierEtab);
+    if (!marker) return;
+
+    selectedPOIMarker = marker;
+    if (typeof marker._resetIcon === 'function') marker._resetIcon(true);
+    map.setView(marker.getLatLng(), 16);
+    setTimeout(() => marker.openPopup(), 350);
 }
 
 // ============================================

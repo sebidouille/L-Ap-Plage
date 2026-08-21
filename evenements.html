@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e88e5">
+    <title>L'Ap'Plage – Évènements</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Ap'Plage">
+    <link rel="apple-touch-icon" href="images/bar.png">
+    <link href="https://fonts.googleapis.com/css2?family=Averia+Libre:wght@300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* ── Page évènements ── */
+        body { overflow: hidden; }
+
+        #events-page {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f0;
+        }
+
+        /* Barre de titre */
+        #events-titlebar {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #1e88e5, #1565c0);
+            color: #fff;
+            text-align: center;
+            padding: 14px 56px;
+            font-family: 'Averia Libre', sans-serif;
+            font-size: 1.15rem;
+            letter-spacing: 0.03em;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Zone de liste scrollable */
+        #events-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 12px 80px;
+        }
+
+        /* Message vide */
+        #events-empty {
+            text-align: center;
+            color: #888;
+            margin-top: 60px;
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        /* Groupe par établissement */
+        .evt-group {
+            background: #fff;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        .evt-group-header {
+            padding: 11px 14px;
+            font-weight: 600;
+            font-size: 0.97rem;
+            background: #e8f0fe;
+            color: #1a237e;
+            border-bottom: 1px solid #c5cae9;
+        }
+
+        .evt-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.15s;
+        }
+        .evt-item:last-child { border-bottom: none; }
+        .evt-item:active { background: #f5f5f5; }
+
+        .evt-item-info { flex: 1; min-width: 0; }
+        .evt-item-nom {
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #212121;
+        }
+        .evt-item-date {
+            font-size: 0.78rem;
+            color: #757575;
+            margin-top: 2px;
+        }
+        .evt-item-arrow { color: #bbb; font-size: 1.1rem; flex-shrink: 0; }
+
+        /* Bouton créer (flottant) */
+        #btn-creer {
+            position: fixed;
+            bottom: 20px;
+            right: 16px;
+            background: #1e88e5;
+            color: #fff;
+            border: none;
+            border-radius: 28px;
+            padding: 13px 22px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+            cursor: pointer;
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #btn-creer:active { filter: brightness(0.9); }
+
+        /* ── Modals ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1100;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .modal-overlay.hidden { display: none; }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 16px 16px 0 0;
+            width: 100%;
+            max-width: 560px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 16px 14px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        .modal-title {
+            flex: 1;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #212121;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #666;
+            padding: 4px 8px;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            padding: 16px;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 12px 16px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        /* Formulaire */
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #555;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 9px 11px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.92rem;
+            box-sizing: border-box;
+            font-family: inherit;
+            color: #212121;
+            background: #fafafa;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1e88e5;
+            background: #fff;
+        }
+        .form-group textarea { resize: vertical; min-height: 72px; }
+        .char-count {
+            font-size: 0.75rem;
+            color: #888;
+            text-align: right;
+            margin-top: 3px;
+        }
+        .char-count.over { color: #e53935; }
+
+        /* Boutons */
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: #1e88e5;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-primary:disabled { background: #90bde3; cursor: default; }
+        .btn-primary:active:not(:disabled) { filter: brightness(0.9); }
+
+        .form-error {
+            color: #e53935;
+            font-size: 0.82rem;
+            margin-top: 6px;
+            display: none;
+        }
+        .form-error.visible { display: block; }
+
+        /* Détail évènement */
+        .evt-detail-label {
+            font-size: 0.78rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 14px;
+            margin-bottom: 3px;
+        }
+        .evt-detail-value {
+            font-size: 0.93rem;
+            color: #212121;
+        }
+        .evt-detail-etab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #1e88e5;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .evt-detail-etab:active { opacity: 0.7; }
+        .evt-pdf-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 14px;
+            color: #1e88e5;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Loading state */
+        #events-loading {
+            text-align: center;
+            color: #888;
+            margin-top: 60px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Stack couches -->
+    <div id="layers-stack">
+        <button id="stack-btn" title="Couches">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+            </svg>
+        </button>
+        <div id="stack-panel" class="hidden">
+            <div class="stack-row" id="layer-accueil">
+                <span class="layer-ind"></span><span class="layer-label">Accueil</span>
+            </div>
+            <div class="stack-row" id="layer-bars">
+                <span class="layer-ind"></span><span class="layer-label">Où boire</span>
+            </div>
+            <div class="stack-row" id="layer-restos">
+                <span class="layer-ind"></span><span class="layer-label">Où manger</span>
+            </div>
+            <div class="stack-row" id="layer-ombres">
+                <span class="layer-ind"></span><span class="layer-label">Ombres</span>
+            </div>
+            <div class="stack-row" id="layer-maree">
+                <span class="layer-ind"></span><span class="layer-label">Hauteur de mer</span>
+            </div>
+            <div class="stack-row active" id="layer-events">
+                <span class="layer-ind"></span><span class="layer-label">Événements</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page principale -->
+    <div id="events-page">
+        <div id="events-titlebar">Évènements à Groix</div>
+        <div id="events-scroll">
+            <div id="events-loading">Chargement…</div>
+            <div id="events-empty" style="display:none">
+                Aucun évènement à venir.<br>
+                <span style="font-size:0.85rem;">Soyez le premier à en créer un !</span>
+            </div>
+            <div id="events-list"></div>
+        </div>
+    </div>
+
+    <!-- Bouton créer -->
+    <button id="btn-creer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Créer un évènement
+    </button>
+
+    <!-- Modal : mot de passe -->
+    <div id="modal-mdp" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title">Accès réservé aux établissements</span>
+                <button class="modal-close" data-close="modal-mdp">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.88rem;color:#555;margin:0 0 16px;">
+                    Saisissez le mot de passe communiqué lors de la validation de votre établissement.
+                </p>
+                <div class="form-group">
+                    <label for="input-mdp">Mot de passe</label>
+                    <input type="password" id="input-mdp" placeholder="••••••••" autocomplete="current-password">
+                </div>
+                <div class="form-error" id="err-mdp">Mot de passe incorrect.</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-valider-mdp">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal : formulaire de création -->
+    <div id="modal-form" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title">Créer un évènement</span>
+                <button class="modal-close" data-close="modal-form">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="sel-etab">Établissement *</label>
+                    <select id="sel-etab">
+                        <option value="">Chargement…</option>
+                    </select>
+                </div>
+
+                <div id="form-fields" style="display:none">
+                    <div class="form-group">
+                        <label for="inp-date">Date de l'évènement *</label>
+                        <input type="date" id="inp-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-horaire">Horaire</label>
+                        <input type="time" id="inp-horaire" placeholder="ex: 20:00">
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-lieu">Lieu <span style="font-weight:400;color:#888;">(si différent de l'adresse)</span></label>
+                        <input type="text" id="inp-lieu" placeholder="Adresse de l'établissement">
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-spectacle">Nom du spectacle / artiste *</label>
+                        <input type="text" id="inp-spectacle" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-desc">Description <span style="font-weight:400;color:#888;">(max 200 car.)</span></label>
+                        <textarea id="inp-desc" maxlength="200" rows="3" placeholder="Quelques mots sur l'évènement…"></textarea>
+                        <div class="char-count"><span id="desc-count">0</span> / 200</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-pdf">Affiche (PDF ou JPEG/PNG, max 5 Mo)</label>
+                        <input type="file" id="inp-pdf" accept="application/pdf,image/jpeg,image/jpg,image/png">
+                        <div class="form-error" id="err-pdf">Le fichier dépasse 5 Mo ou n'est pas un format accepté (PDF, JPEG, PNG).</div>
+                    </div>
+                    <div class="form-error" id="err-form">Une erreur est survenue. Réessayez.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-soumettre" disabled>Soumettre</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal : détail évènement -->
+    <div id="modal-event" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title" id="det-spectacle"></span>
+                <button id="btn-edit-event" title="Modifier cet évènement" style="background:none;border:none;cursor:pointer;font-size:1.15rem;padding:4px 8px;color:#666;flex-shrink:0;">✏️</button>
+                <button class="modal-close" data-close="modal-event">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="evt-detail-label">Établissement</div>
+                <div class="evt-detail-etab" id="det-etab-link">
+                    <span id="det-etab"></span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    <span style="font-size:0.73rem;color:#888;">Voir sur la carte</span>
+                </div>
+                <div class="evt-detail-label">Date</div>
+                <div class="evt-detail-value" id="det-date"></div>
+                <div class="evt-detail-label" id="det-horaire-lbl">Horaire</div>
+                <div class="evt-detail-value" id="det-horaire"></div>
+                <div class="evt-detail-label" id="det-lieu-lbl">Lieu</div>
+                <div class="evt-detail-value" id="det-lieu"></div>
+                <div class="evt-detail-label" id="det-desc-lbl">Description</div>
+                <div class="evt-detail-value" id="det-desc"></div>
+                <div id="det-pdf-wrap"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ── Configuration ─────────────────────────────────────────────────────
+    const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJyHbc7PkwrZCNp4pk4yRIwskOUu27oWjYt_IBxNYtYG7aAWB2S1leol5nHITv29wUCYEiAczyTY9s/pub?output=csv';
+    const GID_BARS      = '1057932141';
+    const GID_RESTOS    = '251951681';
+    const GID_EVENTS    = '1555556457';  // ← Remplacer après création de l'onglet
+    const SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbwKEvdB2lucm24O-iUq9kjBAuEZD16hVaZvEVy84QOjWUq4q9zkojEyHaApKHMe7zl1tg/exec';
+    const MAX_DESC      = 200;
+    const MAX_PDF_BYTES = 5 * 1024 * 1024;        // 5 Mo
+
+    let currentEvent   = null;   // évènement affiché dans le popup détail
+    let editingEventId = null;   // id_evenement en cours de modification (null = création)
+    let pendingAction  = 'create'; // action à lancer après auth mdp
+
+    // ── Navigation stack ──────────────────────────────────────────────────
+    const stackBtn   = document.getElementById('stack-btn');
+    const stackPanel = document.getElementById('stack-panel');
+    stackBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        stackPanel.classList.toggle('hidden');
+    });
+    document.addEventListener('click', () => stackPanel.classList.add('hidden'));
+    stackPanel.addEventListener('click', e => e.stopPropagation());
+
+    document.getElementById('layer-accueil').addEventListener('click', () => { window.location.href = 'index.html'; });
+    document.getElementById('layer-events').addEventListener('click', () => { window.location.href = 'index.html'; });
+    document.getElementById('layer-bars').addEventListener('click',   () => { window.location.href = 'index.html'; });
+    document.getElementById('layer-restos').addEventListener('click', () => { window.location.href = 'index.html'; });
+    document.getElementById('layer-ombres').addEventListener('click', () => { window.location.href = 'ombre.html'; });
+    document.getElementById('layer-maree').addEventListener('click',  () => { window.location.href = 'maree.html'; });
+
+    // ── Utilitaires ───────────────────────────────────────────────────────
+    function parseCSV(text) {
+        const lines = text.trim().split('\n');
+        if (lines.length < 2) return [];
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        return lines.slice(1).map(line => {
+            const vals = [];
+            let cur = '', inQ = false;
+            for (const ch of line) {
+                if (ch === '"') { inQ = !inQ; }
+                else if (ch === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+                else { cur += ch; }
+            }
+            vals.push(cur.trim());
+            const obj = {};
+            headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, ''); });
+            return obj;
+        });
+    }
+
+    function formatDate(str) {
+        if (!str) return '';
+        // str: YYYY-MM-DD
+        const d = new Date(str + 'T00:00:00');
+        return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    document.querySelectorAll('.modal-close').forEach(btn => {
+        btn.addEventListener('click', () => hideModal(btn.dataset.close));
+    });
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+        m.addEventListener('click', e => { if (e.target === m) hideModal(m.id); });
+    });
+
+    // ── Chargement et affichage des évènements ────────────────────────────
+    let eventsData = [];
+
+    async function loadEvents() {
+        try {
+            const resp = await fetch(SHEET_BASE + '&gid=' + GID_EVENTS);
+            if (!resp.ok) throw new Error('Fetch failed');
+            const text = await resp.text();
+            eventsData = parseCSV(text);
+        } catch (e) {
+            eventsData = [];
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        const upcoming = eventsData.filter(ev =>
+            ev.statut === 'valide' && ev.date_evenement >= today
+        ).sort((a, b) => a.date_evenement.localeCompare(b.date_evenement));
+
+        document.getElementById('events-loading').style.display = 'none';
+
+        if (!upcoming.length) {
+            document.getElementById('events-empty').style.display = 'block';
+            return;
+        }
+
+        // Grouper par établissement
+        const grouped = {};
+        upcoming.forEach(ev => {
+            if (!grouped[ev.etablissement]) grouped[ev.etablissement] = [];
+            grouped[ev.etablissement].push(ev);
+        });
+
+        const list = document.getElementById('events-list');
+        list.innerHTML = '';
+
+        Object.entries(grouped).forEach(([etab, evs]) => {
+            const group = document.createElement('div');
+            group.className = 'evt-group';
+            group.innerHTML = `<div class="evt-group-header">${etab}</div>`;
+
+            evs.forEach(ev => {
+                const item = document.createElement('div');
+                item.className = 'evt-item';
+                item.innerHTML = `
+                    <div class="evt-item-info">
+                        <div class="evt-item-nom">${ev.nom_spectacle}</div>
+                        <div class="evt-item-date">${formatDate(ev.date_evenement)}${ev.horaire ? ' · ' + ev.horaire : ''}</div>
+                    </div>
+                    <div class="evt-item-arrow">›</div>
+                `;
+                item.addEventListener('click', () => showEventDetail(ev));
+                group.appendChild(item);
+            });
+
+            list.appendChild(group);
+        });
+    }
+
+    function showEventDetail(ev) {
+        currentEvent = ev;
+        document.getElementById('det-spectacle').textContent = ev.nom_spectacle;
+        document.getElementById('det-etab').textContent      = ev.etablissement;
+        document.getElementById('det-date').textContent      = formatDate(ev.date_evenement);
+
+        const horaire = document.getElementById('det-horaire');
+        const horaireLbl = document.getElementById('det-horaire-lbl');
+        if (ev.horaire) { horaire.textContent = ev.horaire; horaireLbl.style.display = ''; horaire.parentElement && (horaire.style.display = ''); }
+        else { horaireLbl.style.display = 'none'; horaire.style.display = 'none'; }
+
+        const lieu = document.getElementById('det-lieu');
+        const lieuLbl = document.getElementById('det-lieu-lbl');
+        if (ev.lieu) { lieu.textContent = ev.lieu; lieuLbl.style.display = ''; lieu.style.display = ''; }
+        else { lieuLbl.style.display = 'none'; lieu.style.display = 'none'; }
+
+        const desc = document.getElementById('det-desc');
+        const descLbl = document.getElementById('det-desc-lbl');
+        if (ev.description) { desc.textContent = ev.description; descLbl.style.display = ''; desc.style.display = ''; }
+        else { descLbl.style.display = 'none'; desc.style.display = 'none'; }
+
+        const pdfWrap = document.getElementById('det-pdf-wrap');
+        if (ev.affiche_pdf_url) {
+            const isImage  = ev.affiche_pdf_url.includes('#type=image');
+            const cleanUrl = ev.affiche_pdf_url.split('#type=')[0];
+            if (isImage) {
+                const match  = cleanUrl.match(/\/d\/([^\/]+)\//);
+                const fileId = match ? match[1] : null;
+                const thumb  = fileId
+                    ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
+                    : cleanUrl;
+                pdfWrap.innerHTML = `
+                    <img src="${thumb}" style="width:100%;border-radius:8px;margin-top:14px;display:block;" alt="Affiche">
+                    <a href="${cleanUrl}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:6px;font-size:0.78rem;color:#888;">Ouvrir en grand ↗</a>`;
+            } else {
+                pdfWrap.innerHTML = `<a class="evt-pdf-link" href="${cleanUrl}" target="_blank" rel="noopener">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Voir l'affiche (PDF)
+                </a>`;
+            }
+        } else {
+            pdfWrap.innerHTML = '';
+        }
+
+        // Clic établissement → localStorage + retour carte
+        document.getElementById('det-etab-link').onclick = () => {
+            localStorage.setItem('dernier_etablissement_consulte', ev.etablissement);
+            window.location.href = 'index.html';
+        };
+
+        showModal('modal-event');
+    }
+
+    // ── Chargement du dropdown établissements ─────────────────────────────
+    let etabsData = [];   // { nom, categorie, adresse }
+
+    async function loadEtablissements() {
+        try {
+            const [barsTxt, restosTxt] = await Promise.all([
+                fetch(SHEET_BASE + '&gid=' + GID_BARS  ).then(r => r.text()),
+                fetch(SHEET_BASE + '&gid=' + GID_RESTOS).then(r => r.text())
+            ]);
+            const bars   = parseCSV(barsTxt  ).filter(b => b['Validé'] === '1' || b['Valide'] === '1');
+            const restos = parseCSV(restosTxt).filter(r => r['Validé'] === '1' || r['Valide'] === '1');
+
+            etabsData = [
+                ...bars.map(b   => ({ nom: b.Nom, categorie: 'ou_boire',  adresse: b.Adresse || '' })),
+                ...restos.map(r => ({ nom: r.Nom, categorie: 'ou_manger', adresse: r.Adresse || '' }))
+            ].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+
+            const sel = document.getElementById('sel-etab');
+            sel.innerHTML = '<option value="">— Choisir un établissement —</option>';
+            etabsData.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value       = e.nom;
+                opt.textContent = e.nom;
+                sel.appendChild(opt);
+            });
+        } catch (err) {
+            document.getElementById('sel-etab').innerHTML = '<option value="">Erreur de chargement</option>';
+        }
+    }
+
+    // Déverrouiller le reste du formulaire quand un établissement est choisi
+    document.getElementById('sel-etab').addEventListener('change', function () {
+        const fields = document.getElementById('form-fields');
+        const btn    = document.getElementById('btn-soumettre');
+        if (this.value) {
+            fields.style.display = 'block';
+            btn.disabled = false;
+            // Pré-remplir le lieu avec l'adresse
+            const etab = etabsData.find(e => e.nom === this.value);
+            document.getElementById('inp-lieu').placeholder = etab ? etab.adresse : '';
+        } else {
+            fields.style.display = 'none';
+            btn.disabled = true;
+        }
+    });
+
+    // Compteur de caractères description
+    document.getElementById('inp-desc').addEventListener('input', function () {
+        const n   = this.value.length;
+        const el  = document.getElementById('desc-count');
+        el.textContent = n;
+        el.parentElement.classList.toggle('over', n > MAX_DESC);
+    });
+
+    // Vérification taille PDF
+    document.getElementById('inp-pdf').addEventListener('change', function () {
+        const err  = document.getElementById('err-pdf');
+        const file = this.files[0];
+        const ok   = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'].includes(file?.type);
+        if (file && (file.size > MAX_PDF_BYTES || !ok)) {
+            err.classList.add('visible');
+            this.value = '';
+        } else {
+            err.classList.remove('visible');
+        }
+    });
+
+    // ── Mot de passe ──────────────────────────────────────────────────────
+    document.getElementById('btn-creer').addEventListener('click', () => {
+        pendingAction = 'create';
+        if (sessionStorage.getItem('mdp_valide') === 'true') {
+            openCreationForm(null);
+        } else {
+            document.getElementById('input-mdp').value = '';
+            document.getElementById('err-mdp').classList.remove('visible');
+            showModal('modal-mdp');
+        }
+    });
+
+    document.getElementById('btn-edit-event').addEventListener('click', () => {
+        pendingAction = 'edit';
+        hideModal('modal-event');
+        if (sessionStorage.getItem('mdp_valide') === 'true') {
+            openCreationForm(currentEvent);
+        } else {
+            document.getElementById('input-mdp').value = '';
+            document.getElementById('err-mdp').classList.remove('visible');
+            showModal('modal-mdp');
+        }
+    });
+
+    document.getElementById('btn-valider-mdp').addEventListener('click', verifierMdp);
+    document.getElementById('input-mdp').addEventListener('keydown', e => {
+        if (e.key === 'Enter') verifierMdp();
+    });
+
+    async function verifierMdp() {
+        const btn = document.getElementById('btn-valider-mdp');
+        const mdp = document.getElementById('input-mdp').value.trim();
+        if (!mdp) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>';
+
+        try {
+            const resp = await fetch(SCRIPT_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body:    JSON.stringify({ action: 'verifierMdp', motdepasse: mdp })
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                sessionStorage.setItem('mdp_valide', 'true');
+                hideModal('modal-mdp');
+                openCreationForm(pendingAction === 'edit' ? currentEvent : null);
+            } else {
+                document.getElementById('err-mdp').classList.add('visible');
+            }
+        } catch (e) {
+            document.getElementById('err-mdp').textContent = 'Erreur réseau. Réessayez.';
+            document.getElementById('err-mdp').classList.add('visible');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Valider';
+        }
+    }
+
+    function openCreationForm(ev) {
+        editingEventId = ev ? ev.id_evenement : null;
+
+        // Titre du modal
+        document.querySelector('#modal-form .modal-title').textContent =
+            ev ? 'Modifier un évènement' : 'Créer un évènement';
+
+        // Champs
+        document.getElementById('sel-etab').value      = ev ? ev.etablissement  : '';
+        document.getElementById('inp-date').value      = ev ? ev.date_evenement : '';
+        document.getElementById('inp-horaire').value   = ev ? ev.horaire        : '';
+        document.getElementById('inp-lieu').value      = ev ? ev.lieu           : '';
+        document.getElementById('inp-spectacle').value = ev ? ev.nom_spectacle  : '';
+        document.getElementById('inp-desc').value      = ev ? ev.description    : '';
+        document.getElementById('desc-count').textContent = ev ? ev.description.length : '0';
+        document.getElementById('inp-pdf').value       = '';
+
+        // Afficher les champs si édition (établissement déjà sélectionné)
+        document.getElementById('form-fields').style.display = ev ? 'block' : 'none';
+        const btn = document.getElementById('btn-soumettre');
+        btn.disabled    = !ev;
+        btn.textContent = ev ? 'Modifier' : 'Soumettre';
+
+        document.getElementById('err-form').classList.remove('visible');
+        showModal('modal-form');
+    }
+
+    // ── Soumission du formulaire ──────────────────────────────────────────
+    document.getElementById('btn-soumettre').addEventListener('click', soumettreEvenement);
+
+    async function soumettreEvenement() {
+        const etab     = document.getElementById('sel-etab').value;
+        const date     = document.getElementById('inp-date').value;
+        const spectacle = document.getElementById('inp-spectacle').value.trim();
+
+        if (!etab || !date || !spectacle) {
+            document.getElementById('err-form').textContent = 'Veuillez remplir les champs obligatoires (*)';
+            document.getElementById('err-form').classList.add('visible');
+            return;
+        }
+
+        const btn = document.getElementById('btn-soumettre');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Envoi…';
+
+        const etabObj  = etabsData.find(e => e.nom === etab) || {};
+        const lieuVal  = document.getElementById('inp-lieu').value.trim() || etabObj.adresse || '';
+
+        // Encodage PDF en base64
+        let affiche_base64 = '';
+        const pdfFile = document.getElementById('inp-pdf').files[0];
+        if (pdfFile) {
+            affiche_base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload  = e => resolve(e.target.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(pdfFile);
+            });
+        }
+
+        const payload = {
+            action:          editingEventId ? 'modifierEvenement' : 'soumettreEvenement',
+            id_evenement:    editingEventId || undefined,
+            etablissement:   etab,
+            categorie:       etabObj.categorie || '',
+            date_evenement:  date,
+            horaire:         document.getElementById('inp-horaire').value,
+            lieu:            lieuVal,
+            nom_spectacle:   spectacle,
+            description:     document.getElementById('inp-desc').value.trim(),
+            affiche_base64,
+            affiche_mime: pdfFile ? pdfFile.type : ''
+        };
+
+        try {
+            const resp = await fetch(SCRIPT_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body:    JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                hideModal('modal-form');
+                const msg = editingEventId
+                    ? "Votre évènement a été modifié. Il sera visible après re-validation par l'administrateur."
+                    : "Votre évènement a été soumis. Il sera visible après validation par l'administrateur.";
+                alert(msg);
+                loadEvents();   // Rafraîchir la liste
+            } else {
+                throw new Error(data.error || 'Erreur inconnue');
+            }
+        } catch (err) {
+            document.getElementById('err-form').textContent = 'Erreur : ' + err.message;
+            document.getElementById('err-form').classList.add('visible');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = editingEventId ? 'Modifier' : 'Soumettre';
+        }
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    loadEvents();
+    loadEtablissements();
+
+    if ('serviceWorker' in navigator) {
+        if (location.hostname === 'localhost') {
+            navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+        } else {
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+        }
+    }
+    </script>
+</body>
+</html>

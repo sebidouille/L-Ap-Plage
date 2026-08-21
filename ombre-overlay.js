@@ -1,8 +1,11 @@
-// ombre-overlay.js — Couche GeoJSON ombres pour ombre.html
-// Doit être chargé AVANT app.js
+// ombre-overlay.js — Couche GeoJSON ombres
+// Chargé AVANT app.js. Si chargé en premier → calque primaire (actif d'entrée).
+// Si chargé en second (MAREE_MODE déjà défini) → calque secondaire (inactif d'entrée).
 
-// Signaler à app.js qu'on est sur la page ombres
 window.OMBRE_MODE = true;
+
+// Primaire = aucun autre overlay n'était déjà chargé
+const SHADOW_PRIMARY = !window.MAREE_MODE;
 
 (function () {
     'use strict';
@@ -10,12 +13,8 @@ window.OMBRE_MODE = true;
     const GROIX_LAT = 47.6389;
     const GROIX_LON = -3.4523;
 
-    // UTC offset local (gère CET/CEST automatiquement)
-    function utcOffset() {
-        return -new Date().getTimezoneOffset() / 60;
-    }
+    function utcOffset() { return -new Date().getTimezoneOffset() / 60; }
 
-    // Altitude solaire en degrés pour une heure locale entière
     function sunAlt(year, month, day, hourLocal) {
         const hourUtc = hourLocal - utcOffset();
         const jd = 367 * year
@@ -36,27 +35,26 @@ window.OMBRE_MODE = true;
         return Math.asin(Math.max(-1, Math.min(1, sinAlt))) * 180 / Math.PI;
     }
 
-    // Filtre horaire : uniquement les heures où le soleil est au-dessus de l'horizon
-    window.hourFilter = function (h, date) {
-        return sunAlt(date.getFullYear(), date.getMonth() + 1, date.getDate(), h) > 0;
-    };
+    // Filtre horaire uniquement si l'ombre est le calque primaire
+    if (SHADOW_PRIMARY) {
+        window.hourFilter = function (h, date) {
+            return sunAlt(date.getFullYear(), date.getMonth() + 1, date.getDate(), h) > 0;
+        };
+    }
 
-    // ── Overlay GeoJSON ────────────────────────────────────────────────────────
-    let shadowLayer = null;
-    let slotsIndex  = {};   // { 'YYYY-MM-DD': [h, h, ...] }
+    let shadowLayer   = null;
+    let shadowVisible = SHADOW_PRIMARY;
+    let slotsIndex    = {};
 
-    // Trouver le créneau disponible le plus proche d'une date/heure
     function findClosestSlot(date) {
         const dates = Object.keys(slotsIndex).sort();
         if (!dates.length) return null;
-
         const target = new Date(date.toISOString().split('T')[0]).getTime();
         let bestDate = dates[0], minDiff = Infinity;
         for (const d of dates) {
             const diff = Math.abs(new Date(d).getTime() - target);
             if (diff < minDiff) { minDiff = diff; bestDate = d; }
         }
-
         const hours = slotsIndex[bestDate] || [];
         if (!hours.length) return null;
         const hour = date.getHours();
@@ -69,15 +67,13 @@ window.OMBRE_MODE = true;
     }
 
     function loadShadow(date) {
+        if (!shadowVisible) return;
         if (!date) date = new Date();
         const slot = findClosestSlot(date);
-
         if (shadowLayer) { map.removeLayer(shadowLayer); shadowLayer = null; }
         if (!slot) return;
-
         const h    = String(slot.hour).padStart(2, '0');
         const path = `data/ombres/ombre_groix_${slot.date}_${h}h.geojson`;
-
         fetch(path)
             .then(r => r.ok ? r.json() : null)
             .then(data => {
@@ -95,30 +91,42 @@ window.OMBRE_MODE = true;
             .catch(() => {});
     }
 
-    // Hook chaînable : appelle l'éventuel handler précédent, puis charge l'ombre
-    const _prevOnDateChanged = window.onDateChanged;
+    // onDateChanged chaînable
+    const _prev = window.onDateChanged;
     window.onDateChanged = function (date) {
-        if (typeof _prevOnDateChanged === 'function') _prevOnDateChanged(date);
+        if (typeof _prev === 'function') _prev(date);
         loadShadow(date);
     };
 
-    // ── Init ──────────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function () {
         const rowOmbres = document.getElementById('layer-ombres');
         if (rowOmbres) {
-            rowOmbres.classList.add('active');
+            rowOmbres.classList.toggle('active', shadowVisible);
+
             rowOmbres.addEventListener('click', function () {
-                window.location.href = 'index.html';
+                shadowVisible = !shadowVisible;
+                rowOmbres.classList.toggle('active', shadowVisible);
+
+                if (shadowVisible) {
+                    loadShadow(typeof getDisplayDate === 'function' ? getDisplayDate() : new Date());
+                } else {
+                    if (shadowLayer) { map.removeLayer(shadowLayer); shadowLayer = null; }
+                    // Retour index si plus aucun calque actif
+                    const tideActive = document.getElementById('layer-maree').classList.contains('active');
+                    if (!tideActive) window.location.href = 'index.html';
+                }
             });
         }
 
-        // Charger l'index des créneaux disponibles, puis le premier shadow
+        // Toujours charger l'index (nécessaire pour activation à la demande)
         fetch('data/ombres/index.json')
             .then(r => r.ok ? r.json() : { slots: {} })
             .catch(() => ({ slots: {} }))
             .then(idx => {
                 slotsIndex = idx.slots || {};
-                loadShadow(typeof getDisplayDate === 'function' ? getDisplayDate() : new Date());
+                if (shadowVisible) {
+                    loadShadow(typeof getDisplayDate === 'function' ? getDisplayDate() : new Date());
+                }
             });
     });
 
