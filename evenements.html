@@ -428,7 +428,8 @@
         <div class="modal-box">
             <div class="modal-header">
                 <span class="modal-title" id="det-spectacle"></span>
-                <button id="btn-edit-event" title="Modifier cet évènement" style="background:none;border:none;cursor:pointer;font-size:1.15rem;padding:4px 8px;color:#666;flex-shrink:0;">✏️</button>
+                <button id="btn-edit-event"   title="Modifier cet évènement"  style="background:none;border:none;cursor:pointer;font-size:1.15rem;padding:4px 8px;color:#666;flex-shrink:0;">✏️</button>
+                <button id="btn-delete-event" title="Supprimer cet évènement" style="background:none;border:none;cursor:pointer;font-size:1.15rem;padding:4px 6px;color:#999;flex-shrink:0;">🗑️</button>
                 <button class="modal-close" data-close="modal-event">✕</button>
             </div>
             <div class="modal-body">
@@ -721,6 +722,18 @@
         }
     });
 
+    document.getElementById('btn-delete-event').addEventListener('click', () => {
+        pendingAction = 'delete';
+        hideModal('modal-event');
+        if (sessionStorage.getItem('mdp_valide') === 'true') {
+            demanderSuppression();
+        } else {
+            document.getElementById('input-mdp').value = '';
+            document.getElementById('err-mdp').classList.remove('visible');
+            showModal('modal-mdp');
+        }
+    });
+
     document.getElementById('btn-valider-mdp').addEventListener('click', verifierMdp);
     document.getElementById('input-mdp').addEventListener('keydown', e => {
         if (e.key === 'Enter') verifierMdp();
@@ -744,7 +757,11 @@
             if (data.ok) {
                 sessionStorage.setItem('mdp_valide', 'true');
                 hideModal('modal-mdp');
-                openCreationForm(pendingAction === 'edit' ? currentEvent : null);
+                if (pendingAction === 'delete') {
+                    demanderSuppression();
+                } else {
+                    openCreationForm(pendingAction === 'edit' ? currentEvent : null);
+                }
             } else {
                 document.getElementById('err-mdp').classList.add('visible');
             }
@@ -854,6 +871,24 @@
         } finally {
             btn.disabled = false;
             btn.textContent = editingEventId ? 'Modifier' : 'Soumettre';
+        }
+    }
+
+    async function demanderSuppression() {
+        try {
+            const resp = await fetch(SCRIPT_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body:    JSON.stringify({ action: 'demanderSuppression', id_evenement: currentEvent.id_evenement })
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                alert("Demande envoyée. L'évènement sera supprimé après confirmation par l'administrateur.");
+            } else {
+                alert('Erreur : ' + (data.error || 'Échec de la demande'));
+            }
+        } catch(e) {
+            alert('Erreur réseau. Réessayez.');
         }
     }
 

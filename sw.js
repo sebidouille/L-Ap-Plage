@@ -1,4 +1,4 @@
-const CACHE = 'applage-v20260821222525';
+const CACHE = 'applage-v20260822202609';
 
 const PRECACHE = [
     './',
@@ -55,6 +55,10 @@ self.addEventListener('fetch', e => {
 
     // Ignorer les tuiles et ressources Mapbox (trop lourdes, déjà gérées par Mapbox)
     if (url.hostname.includes('mapbox.com')) return;
+
+    // Ignorer les requêtes POST et les appels Apps Script (pas cachables)
+    if (e.request.method === 'POST') return;
+    if (url.hostname.includes('script.google.com')) return;
 
     // Google Sheets → network-first, fallback cache (données fraîches si réseau dispo)
     if (url.hostname.includes('docs.google.com')) {

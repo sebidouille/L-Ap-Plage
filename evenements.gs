@@ -7,6 +7,7 @@ const ADMIN_EMAIL    = 'rouxseb56@gmail.com';
 const ONGLET_EVENTS  = 'Evenements';
 const ONGLET_BARS    = 'ou boire';
 const ONGLET_RESTOS  = 'ou manger';
+const CSS_           = '<style>body{font-family:sans-serif;padding:40px;max-width:600px;margin:auto;text-align:center;}</style>';
 //
 // ▶ DÉPLOIEMENT (une fois, ou à chaque modification)
 //   Extensions → Apps Script → Déployer → Gérer les déploiements → Nouveau déploiement
@@ -42,6 +43,10 @@ function doPost(e) {
             return modifierEvenement(data);
         }
 
+        if (action === 'demanderSuppression') {
+            return demanderSuppression(data);
+        }
+
         return jsonOut({ error: 'Action inconnue' });
 
     } catch (err) {
@@ -54,7 +59,10 @@ function doGet(e) {
     if (action === 'valider') {
         return validerEvenement(e.parameter.id, e.parameter.token);
     }
-    return HtmlService.createHtmlOutput(pageCss() + "<p>L'Ap'Plage — OK</p>");
+    if (action === 'supprimer') {
+        return confirmerSuppression(e.parameter.id, e.parameter.token);
+    }
+    return HtmlService.createHtmlOutput(CSS_ + "<p>L'Ap'Plage — OK</p>");
 }
 
 // ── Soumission d'un évènement ─────────────────────────────────────────────
@@ -202,6 +210,85 @@ function modifierEvenement(data) {
     return jsonOut({ error: 'Évènement introuvable' });
 }
 
+// ── Demande de suppression ────────────────────────────────────────────────
+
+function demanderSuppression(data) {
+    const ss     = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet  = ss.getSheetByName(ONGLET_EVENTS);
+    const values = sheet.getDataRange().getValues();
+    const hdr    = values[0];
+
+    const colId     = hdr.indexOf('id_evenement');
+    const colStatut = hdr.indexOf('statut');
+    const colToken  = hdr.indexOf('token_validation');
+    const colEtab   = hdr.indexOf('etablissement');
+    const colSpect  = hdr.indexOf('nom_spectacle');
+
+    for (let i = 1; i < values.length; i++) {
+        if (values[i][colId] !== data.id_evenement) continue;
+
+        const newToken = Utilities.getUuid();
+        const row = i + 1;
+        sheet.getRange(row, colStatut + 1).setValue('en_attente_suppression');
+        sheet.getRange(row, colToken  + 1).setValue(newToken);
+
+        const appUrl       = ScriptApp.getService().getUrl();
+        const supprimerUrl = appUrl + '?action=supprimer&id=' + data.id_evenement + '&token=' + newToken;
+
+        MailApp.sendEmail({
+            to:      ADMIN_EMAIL,
+            subject: "app plage - Demande de suppression d'évènement",
+            body: [
+                "Une demande de suppression d'évènement a été reçue sur L'Ap'Plage.",
+                '',
+                'Établissement : ' + values[i][colEtab],
+                'Spectacle     : ' + values[i][colSpect],
+                '',
+                "→ Confirmer la suppression :",
+                supprimerUrl
+            ].join('\n')
+        });
+
+        return jsonOut({ ok: true });
+    }
+
+    return jsonOut({ error: 'Évènement introuvable' });
+}
+
+function confirmerSuppression(id, token) {
+    const ss     = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet  = ss.getSheetByName(ONGLET_EVENTS);
+    const values = sheet.getDataRange().getValues();
+    const hdr    = values[0];
+
+    const colId     = hdr.indexOf('id_evenement');
+    const colToken  = hdr.indexOf('token_validation');
+    const colStatut = hdr.indexOf('statut');
+    const colSpect  = hdr.indexOf('nom_spectacle');
+    const colEtab   = hdr.indexOf('etablissement');
+
+    for (let i = 1; i < values.length; i++) {
+        if (values[i][colId] !== id || values[i][colToken] !== token) continue;
+
+        if (values[i][colStatut] !== 'en_attente_suppression') {
+            return HtmlService.createHtmlOutput(
+                CSS_ + "<h2>ℹ️ Ce lien de suppression n'est plus valide.</h2>");
+        }
+
+        const spectacle = values[i][colSpect];
+        const etab      = values[i][colEtab];
+        sheet.deleteRow(i + 1);
+
+        return HtmlService.createHtmlOutput(
+            CSS_ +
+            '<h2>🗑️ Évènement supprimé.</h2>' +
+            '<p><strong>' + spectacle + '</strong> — ' + etab + '</p>');
+    }
+
+    return HtmlService.createHtmlOutput(
+        CSS_ + '<h2>❌ Lien invalide ou évènement introuvable.</h2>');
+}
+
 // ── Validation admin (lien email) ─────────────────────────────────────────
 
 function validerEvenement(id, token) {
@@ -222,19 +309,19 @@ function validerEvenement(id, token) {
 
         if (values[i][colStatut] === 'valide') {
             return HtmlService.createHtmlOutput(
-                pageCss() + '<h2>ℹ️ Cet évènement est déjà validé.</h2>');
+                CSS_ + '<h2>ℹ️ Cet évènement est déjà validé.</h2>');
         }
         sheet.getRange(i + 1, colStatut + 1).setValue('valide');
         sheet.getRange(i + 1, colDateV  + 1).setValue(new Date().toISOString());
         return HtmlService.createHtmlOutput(
-            pageCss() +
+            CSS_ +
             '<h2>✅ Évènement validé !</h2>' +
             '<p><strong>' + values[i][colSpect] + '</strong>' +
             ' — ' + values[i][colEtab] + '</p>');
     }
 
     return HtmlService.createHtmlOutput(
-        pageCss() + '<h2>❌ Lien invalide ou évènement introuvable.</h2>');
+        CSS_ + '<h2>❌ Lien invalide ou évènement introuvable.</h2>');
 }
 
 // ── Envoi du MDP aux nouveaux établissements (trigger onEdit) ─────────────
@@ -380,6 +467,6 @@ function jsonOut(obj) {
         .setMimeType(ContentService.MimeType.JSON);
 }
 
-function pageCss() {
+function CSS_ {
     return '<style>body{font-family:sans-serif;padding:40px;max-width:600px;margin:auto;text-align:center;}</style>';
 }
