@@ -88,7 +88,7 @@ function removePOI(glMap) {
 // ============================================
 async function fetchMeteoData() {
     const LAT = '47.6389', LON = '-3.4523', TZ = 'Europe%2FParis', DAYS = 7;
-    const urlVent   = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,weathercode,temperature_2m&wind_speed_unit=kmh&timezone=${TZ}&forecast_days=${DAYS}`;
+    const urlVent   = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,weathercode,temperature_2m,precipitation&wind_speed_unit=kmh&timezone=${TZ}&forecast_days=${DAYS}`;
     const urlMarine = `https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&timezone=${TZ}&forecast_days=${DAYS}`;
     try {
         const [rVent, rMarine] = await Promise.all([
@@ -103,6 +103,7 @@ async function fetchMeteoData() {
             rafales_kmh:      rVent.hourly.wind_gusts_10m[i]     ?? null,
             weathercode:      rVent.hourly.weathercode[i]        ?? null,
             temperature_air:  rVent.hourly.temperature_2m[i]     ?? null,
+            precipitation:    rVent.hourly.precipitation[i]      ?? 0,
             temperature_eau:  rMarine.hourly.sea_surface_temperature[i] ?? null,
             hauteur_vagues:   rMarine.hourly.wave_height[i]      ?? null,
             direction_vagues: rMarine.hourly.wave_direction[i]   ?? null,
@@ -168,6 +169,8 @@ function addPlagesMarkers() {
                 if (canvas) drawTideChart(canvas);
                 const wrapper = document.querySelector('.leaflet-popup-content-wrapper');
                 if (wrapper) enablePopupDrag(wrapper, {});
+                const turbDiv = document.querySelector('.turbidite-widget');
+                if (turbDiv && window.renderTurbidite) window.renderTurbidite(plage, turbDiv);
             }, 200);
         });
 
@@ -479,10 +482,39 @@ function initCalendar() {
 // ============================================
 // ACTUALISATION MARQUEURS SELON DATE
 // ============================================
+function updateMeteoBar() {
+    const bar   = document.getElementById('meteo-bar');
+    if (!bar) return;
+    const now   = getDisplayDate();
+    const meteo = getMeteoAtDate(now);
+    if (!meteo) { bar.innerHTML = ''; return; }
+
+    const force    = Math.round(meteo.force_vent_kmh ?? 0);
+    const dirVent  = meteo.direction_vent ?? 0;
+    const tempAir  = meteo.temperature_air !== null ? `${Math.round(meteo.temperature_air)}°C` : '';
+    const ciel     = weatherIcon(meteo.weathercode);
+    const hauteur  = meteo.hauteur_vagues  !== null ? meteo.hauteur_vagues.toFixed(1)  : null;
+    const dirHoule = meteo.direction_vagues ?? 0;
+    const tempEau  = meteo.temperature_eau !== null ? `${Math.round(meteo.temperature_eau)}°C` : '';
+
+    const ventPill = `<div class="meteo-pill">
+        ${ciel} ${windArrowSvg((dirVent + 180) % 360, 'blue')} ${force} km/h ${degToCardinal(dirVent)}
+        ${tempAir ? `· 🌡️ ${tempAir}` : ''}
+    </div>`;
+
+    const houlePill = hauteur ? `<div class="meteo-pill">
+        ${houleArrowSvg((dirHoule + 180) % 360)} ${hauteur} m ${degToCardinal(dirHoule)}
+        ${tempEau ? `· 💧 ${tempEau}` : ''}
+    </div>` : '';
+
+    bar.innerHTML = ventPill + houlePill;
+}
+
 function refreshMarkers() {
     plagesMarkers.forEach(m => map.removeLayer(m));
     plagesMarkers = [];
     addPlagesMarkers();
+    updateMeteoBar();
     if (window.onDateChanged) window.onDateChanged(getDisplayDate());
 }
 
@@ -499,6 +531,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     initGeolocate();
     await loadData();
     addPlagesMarkers();
+    updateMeteoBar();
     initFromLastEvent();
 });
 
@@ -645,24 +678,6 @@ function createPopup(plage) {
     };
     const badge = badgeMap[color] || badgeMap.blue;
 
-    const meteo = getMeteoAtDate(getDisplayDate());
-    let ventHtml = '';
-    let houleHtml = '';
-    if (meteo) {
-        const force   = Math.round(meteo.force_vent_kmh ?? 0);
-        const dirVent = meteo.direction_vent ?? 0;
-        const cielIcon = weatherIcon(meteo.weathercode);
-        const tempAir  = meteo.temperature_air !== null ? `<span style="float:right">🌡️ ${Math.round(meteo.temperature_air)}°C</span>` : '';
-        ventHtml = `<p style="overflow:hidden">${cielIcon} <strong>Vent</strong> ${windArrowSvg((dirVent + 180) % 360, color)} ${force} km/h · ${degToCardinal(dirVent)}${tempAir}</p>`;
-
-        if (meteo.hauteur_vagues !== null) {
-            const hauteur  = meteo.hauteur_vagues  ?? 0;
-            const dirHoule = meteo.direction_vagues ?? 0;
-            const tempEau  = meteo.temperature_eau !== null ? `<span style="float:right">💧 ${Math.round(meteo.temperature_eau)}°C</span>` : '';
-            houleHtml = `<p style="overflow:hidden"><strong>Houle</strong> ${houleArrowSvg((dirHoule + 180) % 360)} ${hauteur.toFixed(1)} m · ${degToCardinal(dirHoule)}${tempEau}</p>`;
-        }
-    }
-
     return `
         <div class="popup-wrap">
             <div class="popup-header" style="background:${badge.gradient}">
@@ -675,8 +690,7 @@ function createPopup(plage) {
                      style="display:block;margin:0 auto 12px;width:88%;max-height:260px;object-fit:contain;border-radius:12px;">
                 <p><strong>Marée idéale :</strong> ${mareeIdeale}</p>
                 ${accessibilite === 'Difficile' ? `<p>♿ <strong>Accessibilité :</strong> Difficile</p>` : ''}
-                ${ventHtml}
-                ${houleHtml}
+                <div class="turbidite-widget"></div>
                 <div class="popup-chart"><canvas class="tide-canvas"></canvas></div>
             </div>
         </div>`;
