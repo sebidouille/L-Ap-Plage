@@ -86,52 +86,44 @@ function removePOI(glMap) {
 // ============================================
 // CHARGEMENT DONNÉES
 // ============================================
-let marineData = []; // données houle OpenMeteo (fetché directement)
-
-async function fetchMarineData() {
-    const url = 'https://marine-api.open-meteo.com/v1/marine'
-        + '?latitude=47.6389&longitude=-3.4523'
-        + '&hourly=wave_height,wave_direction,wave_period'
-        + '&timezone=Europe%2FParis&forecast_days=7';
+async function fetchMeteoData() {
+    const LAT = '47.6389', LON = '-3.4523', TZ = 'Europe%2FParis', DAYS = 7;
+    const urlVent   = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,weathercode,temperature_2m&wind_speed_unit=kmh&timezone=${TZ}&forecast_days=${DAYS}`;
+    const urlMarine = `https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&timezone=${TZ}&forecast_days=${DAYS}`;
     try {
-        const data = await fetch(url).then(r => r.json());
-        const times = data.hourly.time;
-        marineData = times.map((t, i) => ({
+        const [rVent, rMarine] = await Promise.all([
+            fetch(urlVent).then(r => r.json()),
+            fetch(urlMarine).then(r => r.json())
+        ]);
+        const times = rVent.hourly.time;
+        meteoData = times.map((t, i) => ({
             timestamp:        t,
-            hauteur_vagues:   data.hourly.wave_height[i]    ?? '',
-            direction_vagues: data.hourly.wave_direction[i] ?? '',
-            periode_vagues:   data.hourly.wave_period[i]    ?? ''
+            force_vent_kmh:   rVent.hourly.wind_speed_10m[i]    ?? null,
+            direction_vent:   rVent.hourly.wind_direction_10m[i] ?? null,
+            rafales_kmh:      rVent.hourly.wind_gusts_10m[i]     ?? null,
+            weathercode:      rVent.hourly.weathercode[i]        ?? null,
+            temperature_air:  rVent.hourly.temperature_2m[i]     ?? null,
+            temperature_eau:  rMarine.hourly.sea_surface_temperature[i] ?? null,
+            hauteur_vagues:   rMarine.hourly.wave_height[i]      ?? null,
+            direction_vagues: rMarine.hourly.wave_direction[i]   ?? null,
+            periode_vagues:   rMarine.hourly.wave_period[i]      ?? null,
         }));
     } catch (e) {
-        console.warn('Marine API indisponible', e);
+        console.warn('Open-Meteo indisponible', e);
     }
 }
 
-function getMarineAtDate(date) {
-    if (!marineData.length) return null;
-    const target = date.getTime();
-    let best = null, bestDiff = Infinity;
-    marineData.forEach(row => {
-        const t = new Date(row.timestamp).getTime();
-        const diff = Math.abs(t - target);
-        if (diff < bestDiff) { bestDiff = diff; best = row; }
-    });
-    return best;
-}
-
 async function loadData() {
-    const [plagesCSV, mareesJSON, recoCSV, meteoCsv, barsCSV, restosCSV] = await Promise.all([
+    const [plagesCSV, mareesJSON, recoCSV, barsCSV, restosCSV] = await Promise.all([
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.PLAGES}`).then(r => r.text()),
         fetch('data/marees.json').then(r => r.ok ? r.json() : []).catch(() => []),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RECOMMANDATIONS}`).then(r => r.text()),
-        fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.METEO}`).then(r => r.text()),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.BARS}`).then(r => r.text()),
         fetch(`${CONFIG.SHEET_BASE_URL}&gid=${CONFIG.SHEET_GIDS.RESTOS}`).then(r => r.text())
     ]);
 
     plagesData = parseCSV(plagesCSV);
-    mareesData = mareesJSON;   // JSON array, pas besoin de parseCSV
-    meteoData  = parseCSV(meteoCsv);
+    mareesData = mareesJSON;
     barsData   = parseCSV(barsCSV).filter(b => b.Validé === '1' || b.Valide === '1');
     restosData = parseCSV(restosCSV).filter(r => r.Validé === '1' || r.Valide === '1');
     const recoData = parseCSV(recoCSV);
@@ -144,8 +136,8 @@ async function loadData() {
         }
     });
 
-    await fetchMarineData();
-    console.log(`${plagesData.length} plages chargées, ${marineData.length}h marine`);
+    await fetchMeteoData();
+    console.log(`${plagesData.length} plages chargées, ${meteoData.length}h météo`);
 }
 
 // ============================================
@@ -250,7 +242,7 @@ function getScoreHoule(plage, marine) {
 function getScoreVent(plage, meteo) {
     if (!meteo) return 5;
     const dirVent   = parseFloat(meteo.direction_vent) || 0;
-    const forceKmh  = parseFloat((meteo.force_vent_kmh || '').replace(',', '.')) || 0;
+    const forceKmh  = meteo.force_vent_kmh ?? 0;
     const orientIdeal = plage['Orientation vent idéal'] || plage['Orientation vent ideal'] || '';
 
     // Score force : vent faible = bon, fort = mauvais
@@ -284,8 +276,7 @@ function getColor(plage) {
     if (tide && meteo) {
         const sMaree  = getScoreMaree(plage, tide, now);
         const sVent   = getScoreVent(plage, meteo);
-        const marine  = getMarineAtDate(now);
-        const sHoule  = getScoreHoule(plage, marine);
+        const sHoule  = getScoreHoule(plage, meteo);
         const score  = sMaree * 4 + sVent * 3 + sHoule * 3; // sur 100
         if (score >= 75) return 'green';
         if (score >= 60) return 'blue';
@@ -623,6 +614,22 @@ function houleArrowSvg(deg) {
     </svg>`;
 }
 
+function weatherIcon(code) {
+    if (code === null) return '';
+    if (code === 0)                        return '☀️';
+    if (code === 1)                        return '🌤️';
+    if (code === 2)                        return '⛅';
+    if (code === 3)                        return '☁️';
+    if (code === 45 || code === 48)        return '🌫️';
+    if (code >= 51 && code <= 55)          return '🌦️';
+    if (code >= 61 && code <= 65)          return '🌧️';
+    if (code >= 71 && code <= 77)          return '🌨️';
+    if (code >= 80 && code <= 82)          return '🌦️';
+    if (code === 95)                       return '⛈️';
+    if (code === 96 || code === 99)        return '⛈️';
+    return '🌡️';
+}
+
 function createPopup(plage) {
     const nom           = plage.Nom || plage.nom || 'Plage';
     const mareeIdeale   = plage['Marée idéale'] || plage.maree_ideale || '-';
@@ -642,15 +649,17 @@ function createPopup(plage) {
     let ventHtml = '';
     let houleHtml = '';
     if (meteo) {
-        const force   = Math.round(parseFloat((meteo.force_vent_kmh || '').replace(',', '.')) || 0);
-        const dirVent = parseFloat(meteo.direction_vent) || 0;
-        ventHtml = `<p><strong>Vent</strong> ${windArrowSvg(dirVent, color)} ${force} km/h · ${degToCardinal(dirVent)}</p>`;
+        const force   = Math.round(meteo.force_vent_kmh ?? 0);
+        const dirVent = meteo.direction_vent ?? 0;
+        const cielIcon = weatherIcon(meteo.weathercode);
+        const tempAir  = meteo.temperature_air !== null ? `<span style="float:right">🌡️ ${Math.round(meteo.temperature_air)}°C</span>` : '';
+        ventHtml = `<p style="overflow:hidden">${cielIcon} <strong>Vent</strong> ${windArrowSvg((dirVent + 180) % 360, color)} ${force} km/h · ${degToCardinal(dirVent)}${tempAir}</p>`;
 
-        const marine   = getMarineAtDate(getDisplayDate());
-        if (marine) {
-            const hauteur  = parseFloat(marine.hauteur_vagues)  || 0;
-            const dirHoule = parseFloat(marine.direction_vagues) || 0;
-            houleHtml = `<p><strong>Houle</strong> ${houleArrowSvg(dirHoule)} ${hauteur.toFixed(1)} m · ${degToCardinal(dirHoule)}</p>`;
+        if (meteo.hauteur_vagues !== null) {
+            const hauteur  = meteo.hauteur_vagues  ?? 0;
+            const dirHoule = meteo.direction_vagues ?? 0;
+            const tempEau  = meteo.temperature_eau !== null ? `<span style="float:right">💧 ${Math.round(meteo.temperature_eau)}°C</span>` : '';
+            houleHtml = `<p style="overflow:hidden"><strong>Houle</strong> ${houleArrowSvg((dirHoule + 180) % 360)} ${hauteur.toFixed(1)} m · ${degToCardinal(dirHoule)}${tempEau}</p>`;
         }
     }
 
