@@ -3,7 +3,7 @@
 // ============================================
 
 // URL du Apps Script (à renseigner après déploiement)
-const TURBIDITE_GS_URL = '';
+const TURBIDITE_GS_URL = 'https://script.google.com/macros/s/AKfycbywBdC7TJDRVmGM_sqMBbCHnxJexlUIMShpTo2rMOGhq6io_dzd-irGN1XYDnWkERJD/exec';
 
 // ============================================
 // SCORE PROXY
@@ -107,11 +107,7 @@ async function fetchVotes(id) {
 async function posterVote(id, valeur) {
     if (!TURBIDITE_GS_URL) return;
     try {
-        await fetch(TURBIDITE_GS_URL, {
-            method: 'POST',
-            body: JSON.stringify({ plage: id, valeur }),
-            headers: { 'Content-Type': 'application/json' }
-        });
+        await fetch(`${TURBIDITE_GS_URL}?action=vote&plage=${encodeURIComponent(id)}&valeur=${valeur}`);
     } catch { /* silencieux */ }
 }
 
