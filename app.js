@@ -9,7 +9,8 @@ const CONFIG = {
         RECOMMANDATIONS: 2049933385,
         METEO:           146047806,
         BARS:            1057932141,
-        RESTOS:          251951681
+        RESTOS:          251951681,
+        EVENTS:          1555556457
     },
     GROIX_CENTER: [47.6389, -3.4523],
     ZOOM_LEVEL: 13,
@@ -533,6 +534,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     addPlagesMarkers();
     updateMeteoBar();
     initFromLastEvent();
+    checkNewEvents();
 });
 
 // ============================================
@@ -1049,6 +1051,26 @@ function initMenu() {
     document.getElementById('layer-events').addEventListener('click', function() {
         window.location.href = 'evenements.html';
     });
+}
+
+// ============================================
+// POINT ROUGE NOUVEAUX ÉVÈNEMENTS
+// ============================================
+async function checkNewEvents() {
+    const dot = document.getElementById('stack-new-dot');
+    if (!dot) return;
+    try {
+        const resp = await fetch(CONFIG.SHEET_BASE_URL + '&gid=' + CONFIG.SHEET_GIDS.EVENTS);
+        if (!resp.ok) return;
+        const text = await resp.text();
+        const events = parseCSV(text);
+        const today = new Date().toISOString().split('T')[0];
+        const upcoming = events.filter(ev => ev.statut === 'valide' && ev.date_evenement >= today);
+        const currentKeys = upcoming.map(ev => ev.nom_spectacle + '|' + ev.date_evenement);
+        const seenKeys = JSON.parse(localStorage.getItem('events_seen_keys') || '[]');
+        const hasNew = currentKeys.some(k => !seenKeys.includes(k));
+        dot.style.display = hasNew ? 'block' : 'none';
+    } catch (e) { /* silencieux */ }
 }
 
 // ============================================

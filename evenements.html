@@ -540,6 +540,10 @@
 
         document.getElementById('events-loading').style.display = 'none';
 
+        // Marquer tous les évènements à venir comme vus
+        const seenKeys = upcoming.map(ev => ev.nom_spectacle + '|' + ev.date_evenement);
+        localStorage.setItem('events_seen_keys', JSON.stringify(seenKeys));
+
         if (!upcoming.length) {
             document.getElementById('events-empty').style.display = 'block';
             return;

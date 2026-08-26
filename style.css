@@ -30,6 +30,7 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
 }
 
 #stack-btn {
+    position: relative;
     width: 32px; height: 32px;
     border-radius: 10px;
     border: none;
@@ -43,6 +44,17 @@ body { overflow: hidden; height: 100vh; width: 100vw; }
 }
 #stack-btn:hover  { background: rgba(255,255,255,0.4); }
 #stack-btn.open   { background: rgba(255,255,255,0.5); }
+
+#stack-new-dot {
+    position: absolute;
+    top: -2px; left: -2px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #e53935;
+    border: 1.5px solid rgba(255,255,255,0.85);
+    display: none;
+    pointer-events: none;
+}
 
 #stack-panel {
     background: rgba(255,255,255,0.22);
