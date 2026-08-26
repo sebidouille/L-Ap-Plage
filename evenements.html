@@ -114,6 +114,18 @@
             white-space: nowrap;
         }
         .btn-valider-evt:active { background: #388e3c; }
+        .btn-supprimer-evt {
+            background: #e53935;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .btn-supprimer-evt:active { background: #b71c1c; }
 
         /* Bouton créer (flottant) */
         #btn-creer {
@@ -562,6 +574,29 @@
         }
     }
 
+    async function confirmerSuppressionDirecte(id, itemEl) {
+        const pwd = sessionStorage.getItem('admin_pwd');
+        if (!pwd) return;
+        const btn = itemEl.querySelector('.btn-supprimer-evt');
+        if (btn) { btn.disabled = true; btn.textContent = '…'; }
+        try {
+            const resp = await fetch(SCRIPT_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body:    JSON.stringify({ action: 'supprimerDirectement', id_evenement: id, motdepasse: pwd })
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                loadEvents();
+            } else {
+                if (btn) { btn.disabled = false; btn.textContent = 'Supprimer'; }
+                alert('Erreur : ' + (data.error || 'impossible de supprimer'));
+            }
+        } catch (e) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Supprimer'; }
+        }
+    }
+
     async function loadEvents() {
         try {
             const resp = await fetch(SHEET_BASE + '&gid=' + GID_EVENTS);
@@ -616,12 +651,19 @@
                         <div class="evt-item-date">${ev.etablissement} · ${formatDate(ev.date_evenement)} · ${label}</div>
                     </div>
                     ${ev.statut === 'en_attente' ? `<button class="btn-valider-evt">Valider</button>` : ''}
+                    ${ev.statut === 'en_attente_suppression' ? `<button class="btn-supprimer-evt">Supprimer</button>` : ''}
                 `;
                 item.querySelector('.evt-item-info').addEventListener('click', () => showEventDetail(ev));
                 if (ev.statut === 'en_attente') {
                     item.querySelector('.btn-valider-evt').addEventListener('click', e => {
                         e.stopPropagation();
                         validerDirectement(ev.id_evenement, item);
+                    });
+                }
+                if (ev.statut === 'en_attente_suppression') {
+                    item.querySelector('.btn-supprimer-evt').addEventListener('click', e => {
+                        e.stopPropagation();
+                        confirmerSuppressionDirecte(ev.id_evenement, item);
                     });
                 }
                 pendingGroup.appendChild(item);

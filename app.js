@@ -1080,7 +1080,7 @@ async function checkNewEvents() {
 
         // Badge icône PWA pour l'admin (évènements en attente)
         if (sessionStorage.getItem('is_admin') === 'true' && 'setAppBadge' in navigator) {
-            const pendingCount = events.filter(ev => ev.statut === 'en_attente').length;
+            const pendingCount = events.filter(ev => ev.statut === 'en_attente' || ev.statut === 'en_attente_suppression').length;
             pendingCount > 0 ? navigator.setAppBadge(pendingCount) : navigator.clearAppBadge();
         }
     } catch (e) { /* silencieux */ }

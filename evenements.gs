@@ -56,6 +56,12 @@ function doPost(e) {
             return validerDirectement(data.id_evenement);
         }
 
+        if (action === 'supprimerDirectement') {
+            const mdpAdmin = PropertiesService.getScriptProperties().getProperty('MDP_ADMIN') || '';
+            if (!mdpAdmin || data.motdepasse !== mdpAdmin) return jsonOut({ error: 'Non autorisé' });
+            return supprimerDirectement(data.id_evenement);
+        }
+
         return jsonOut({ error: 'Action inconnue' });
 
     } catch (err) {
@@ -314,6 +320,23 @@ function validerDirectement(id) {
         if (values[i][colId] !== id) continue;
         sheet.getRange(i + 1, colStatut + 1).setValue('valide');
         sheet.getRange(i + 1, colDateV  + 1).setValue(new Date().toISOString());
+        return jsonOut({ ok: true });
+    }
+    return jsonOut({ error: 'Évènement introuvable' });
+}
+
+// ── Suppression directe depuis l'app (admin) ──────────────────────────────
+
+function supprimerDirectement(id) {
+    const ss     = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet  = ss.getSheetByName(ONGLET_EVENTS);
+    const values = sheet.getDataRange().getValues();
+    const hdr    = values[0];
+    const colId  = hdr.indexOf('id_evenement');
+
+    for (let i = 1; i < values.length; i++) {
+        if (values[i][colId] !== id) continue;
+        sheet.deleteRow(i + 1);
         return jsonOut({ ok: true });
     }
     return jsonOut({ error: 'Évènement introuvable' });
