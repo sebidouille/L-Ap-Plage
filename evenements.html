@@ -647,10 +647,13 @@
             const bars   = parseCSV(barsTxt  ).filter(b => b['Validé'] === '1' || b['Valide'] === '1');
             const restos = parseCSV(restosTxt).filter(r => r['Validé'] === '1' || r['Valide'] === '1');
 
+            const seen = new Set();
             etabsData = [
                 ...bars.map(b   => ({ nom: b.Nom, categorie: 'ou_boire',  adresse: b.Adresse || '' })),
                 ...restos.map(r => ({ nom: r.Nom, categorie: 'ou_manger', adresse: r.Adresse || '' }))
-            ].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+            ]
+            .filter(e => { if (seen.has(e.nom)) return false; seen.add(e.nom); return true; })
+            .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
 
             const sel = document.getElementById('sel-etab');
             sel.innerHTML = '<option value="">— Choisir un établissement —</option>';
