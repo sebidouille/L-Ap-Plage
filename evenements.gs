@@ -31,8 +31,11 @@ function doPost(e) {
         const action = data.action || '';
 
         if (action === 'verifierMdp') {
-            const mdp = PropertiesService.getScriptProperties().getProperty('MDP') || '';
-            return jsonOut({ ok: data.motdepasse === mdp });
+            const mdp      = PropertiesService.getScriptProperties().getProperty('MDP')       || '';
+            const mdpAdmin = PropertiesService.getScriptProperties().getProperty('MDP_ADMIN') || '';
+            const isAdmin  = mdpAdmin && data.motdepasse === mdpAdmin;
+            const ok       = isAdmin || data.motdepasse === mdp;
+            return jsonOut({ ok, isAdmin });
         }
 
         if (action === 'soumettreEvenement') {
@@ -467,6 +470,3 @@ function jsonOut(obj) {
         .setMimeType(ContentService.MimeType.JSON);
 }
 
-function CSS_ {
-    return '<style>body{font-family:sans-serif;padding:40px;max-width:600px;margin:auto;text-align:center;}</style>';
-}

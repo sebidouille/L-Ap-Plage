@@ -385,6 +385,7 @@
                     <select id="sel-etab">
                         <option value="">Chargement…</option>
                     </select>
+                    <input type="text" id="inp-etab-autre" placeholder="Nom du lieu ou de l'établissement" style="display:none; margin-top:8px;">
                 </div>
 
                 <div id="form-fields" style="display:none">
@@ -664,19 +665,41 @@
                 opt.textContent = e.nom;
                 sel.appendChild(opt);
             });
+            if (sessionStorage.getItem('is_admin') === 'true') {
+                const optAutre = document.createElement('option');
+                optAutre.value       = '__autre__';
+                optAutre.textContent = '— Autre lieu / établissement —';
+                sel.appendChild(optAutre);
+            }
         } catch (err) {
             document.getElementById('sel-etab').innerHTML = '<option value="">Erreur de chargement</option>';
         }
     }
 
+    function updateAutreOption() {
+        const sel = document.getElementById('sel-etab');
+        const already = sel.querySelector('option[value="__autre__"]');
+        if (sessionStorage.getItem('is_admin') === 'true' && !already) {
+            const opt = document.createElement('option');
+            opt.value       = '__autre__';
+            opt.textContent = '— Autre lieu / établissement —';
+            sel.appendChild(opt);
+        } else if (sessionStorage.getItem('is_admin') !== 'true' && already) {
+            already.remove();
+        }
+    }
+
     // Déverrouiller le reste du formulaire quand un établissement est choisi
     document.getElementById('sel-etab').addEventListener('change', function () {
-        const fields = document.getElementById('form-fields');
-        const btn    = document.getElementById('btn-soumettre');
+        const fields     = document.getElementById('form-fields');
+        const btn        = document.getElementById('btn-soumettre');
+        const inputAutre = document.getElementById('inp-etab-autre');
+        const isAutre    = this.value === '__autre__';
+        inputAutre.style.display = isAutre ? 'block' : 'none';
+        if (isAutre) inputAutre.focus();
         if (this.value) {
             fields.style.display = 'block';
             btn.disabled = false;
-            // Pré-remplir le lieu avec l'adresse
             const etab = etabsData.find(e => e.nom === this.value);
             document.getElementById('inp-lieu').placeholder = etab ? etab.adresse : '';
         } else {
@@ -764,6 +787,8 @@
             const data = await resp.json();
             if (data.ok) {
                 sessionStorage.setItem('mdp_valide', 'true');
+                sessionStorage.setItem('is_admin', data.isAdmin ? 'true' : 'false');
+                updateAutreOption();
                 hideModal('modal-mdp');
                 if (pendingAction === 'delete') {
                     demanderSuppression();
@@ -790,7 +815,21 @@
             ev ? 'Modifier un évènement' : 'Créer un évènement';
 
         // Champs
-        document.getElementById('sel-etab').value      = ev ? ev.etablissement  : '';
+        const inputAutre = document.getElementById('inp-etab-autre');
+        inputAutre.style.display = 'none';
+        inputAutre.value = '';
+        if (ev) {
+            const inList = etabsData.some(e => e.nom === ev.etablissement);
+            if (inList) {
+                document.getElementById('sel-etab').value = ev.etablissement;
+            } else {
+                document.getElementById('sel-etab').value = '__autre__';
+                inputAutre.value = ev.etablissement;
+                inputAutre.style.display = 'block';
+            }
+        } else {
+            document.getElementById('sel-etab').value = '';
+        }
         document.getElementById('inp-date').value      = ev ? ev.date_evenement : '';
         document.getElementById('inp-horaire').value   = ev ? ev.horaire        : '';
         document.getElementById('inp-lieu').value      = ev ? ev.lieu           : '';
@@ -813,12 +852,17 @@
     document.getElementById('btn-soumettre').addEventListener('click', soumettreEvenement);
 
     async function soumettreEvenement() {
-        const etab     = document.getElementById('sel-etab').value;
-        const date     = document.getElementById('inp-date').value;
+        const selVal    = document.getElementById('sel-etab').value;
+        const etab      = selVal === '__autre__'
+            ? document.getElementById('inp-etab-autre').value.trim()
+            : selVal;
+        const date      = document.getElementById('inp-date').value;
         const spectacle = document.getElementById('inp-spectacle').value.trim();
 
         if (!etab || !date || !spectacle) {
-            document.getElementById('err-form').textContent = 'Veuillez remplir les champs obligatoires (*)';
+            document.getElementById('err-form').textContent = selVal === '__autre__' && !etab
+                ? 'Veuillez saisir le nom du lieu ou de l\'établissement'
+                : 'Veuillez remplir les champs obligatoires (*)';
             document.getElementById('err-form').classList.add('visible');
             return;
         }
