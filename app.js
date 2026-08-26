@@ -535,6 +535,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     updateMeteoBar();
     initFromLastEvent();
     checkNewEvents();
+
+    // Re-vérifier quand l'utilisateur revient sur l'app
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') checkNewEvents();
+    });
+    // Polling toutes les 5 min (app ouverte en continu)
+    setInterval(checkNewEvents, 5 * 60 * 1000);
 });
 
 // ============================================

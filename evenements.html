@@ -549,20 +549,21 @@
             return;
         }
 
-        // Grouper par établissement
+        // Grouper par date
         const grouped = {};
         upcoming.forEach(ev => {
-            if (!grouped[ev.etablissement]) grouped[ev.etablissement] = [];
-            grouped[ev.etablissement].push(ev);
+            if (!grouped[ev.date_evenement]) grouped[ev.date_evenement] = [];
+            grouped[ev.date_evenement].push(ev);
         });
 
         const list = document.getElementById('events-list');
         list.innerHTML = '';
 
-        Object.entries(grouped).forEach(([etab, evs]) => {
+        Object.keys(grouped).sort().forEach(date => {
+            const evs = grouped[date];
             const group = document.createElement('div');
             group.className = 'evt-group';
-            group.innerHTML = `<div class="evt-group-header">${etab}</div>`;
+            group.innerHTML = `<div class="evt-group-header">${formatDate(date)}</div>`;
 
             evs.forEach(ev => {
                 const item = document.createElement('div');
@@ -570,7 +571,7 @@
                 item.innerHTML = `
                     <div class="evt-item-info">
                         <div class="evt-item-nom">${ev.nom_spectacle}</div>
-                        <div class="evt-item-date">${formatDate(ev.date_evenement)}${ev.horaire ? ' · ' + ev.horaire : ''}</div>
+                        <div class="evt-item-date">${ev.etablissement}${ev.horaire ? ' · ' + ev.horaire : ''}</div>
                     </div>
                     <div class="evt-item-arrow">›</div>
                 `;
@@ -902,6 +903,12 @@
     // ── Init ─────────────────────────────────────────────────────────────
     loadEvents();
     loadEtablissements();
+
+    // Re-charger la liste au retour sur l'app + polling 5 min
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') loadEvents();
+    });
+    setInterval(loadEvents, 5 * 60 * 1000);
 
     if ('serviceWorker' in navigator) {
         if (location.hostname === 'localhost') {
