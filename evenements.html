@@ -560,7 +560,7 @@
         list.innerHTML = '';
 
         Object.keys(grouped).sort().forEach(date => {
-            const evs = grouped[date];
+            const evs = grouped[date].sort((a, b) => (a.horaire || '').localeCompare(b.horaire || ''));
             const group = document.createElement('div');
             group.className = 'evt-group';
             group.innerHTML = `<div class="evt-group-header">${formatDate(date)}</div>`;
