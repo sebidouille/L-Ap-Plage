@@ -100,6 +100,21 @@
         }
         .evt-item-arrow { color: #bbb; font-size: 1.1rem; flex-shrink: 0; }
 
+        .evt-item.en-attente { background: #fffde7; }
+        .evt-item.en-attente .evt-item-nom { color: #f57f17; }
+        .btn-valider-evt {
+            background: #43a047;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 5px 12px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .btn-valider-evt:active { background: #388e3c; }
+
         /* Bouton créer (flottant) */
         #btn-creer {
             position: fixed;
@@ -524,6 +539,29 @@
     // ── Chargement et affichage des évènements ────────────────────────────
     let eventsData = [];
 
+    async function validerDirectement(id, itemEl) {
+        const pwd = sessionStorage.getItem('admin_pwd');
+        if (!pwd) return;
+        const btn = itemEl.querySelector('.btn-valider-evt');
+        if (btn) { btn.disabled = true; btn.textContent = '…'; }
+        try {
+            const resp = await fetch(SCRIPT_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body:    JSON.stringify({ action: 'validerDirectement', id_evenement: id, motdepasse: pwd })
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                loadEvents();
+            } else {
+                if (btn) { btn.disabled = false; btn.textContent = 'Valider'; }
+                alert('Erreur : ' + (data.error || 'impossible de valider'));
+            }
+        } catch (e) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Valider'; }
+        }
+    }
+
     async function loadEvents() {
         try {
             const resp = await fetch(SHEET_BASE + '&gid=' + GID_EVENTS);
@@ -534,7 +572,12 @@
             eventsData = [];
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        const today   = new Date().toISOString().split('T')[0];
+        const isAdmin = sessionStorage.getItem('is_admin') === 'true';
+        const pending = isAdmin
+            ? eventsData.filter(ev => ev.statut === 'en_attente' || ev.statut === 'en_attente_suppression')
+                        .sort((a, b) => a.date_evenement.localeCompare(b.date_evenement))
+            : [];
         const upcoming = eventsData.filter(ev =>
             ev.statut === 'valide' && ev.date_evenement >= today
         ).sort((a, b) => a.date_evenement.localeCompare(b.date_evenement));
@@ -545,10 +588,48 @@
         const seenKeys = upcoming.map(ev => ev.nom_spectacle + '|' + ev.date_evenement);
         localStorage.setItem('events_seen_keys', JSON.stringify(seenKeys));
 
-        if (!upcoming.length) {
+        // Badge icône PWA pour l'admin
+        if (isAdmin && 'setAppBadge' in navigator) {
+            pending.length > 0 ? navigator.setAppBadge(pending.length) : navigator.clearAppBadge();
+        }
+
+        if (!upcoming.length && !pending.length) {
             document.getElementById('events-empty').style.display = 'block';
             return;
         }
+
+        const list = document.getElementById('events-list');
+        list.innerHTML = '';
+
+        // Évènements en attente (admin seulement)
+        if (pending.length) {
+            const pendingGroup = document.createElement('div');
+            pendingGroup.className = 'evt-group';
+            pendingGroup.innerHTML = `<div class="evt-group-header" style="color:#f57f17;">En attente de validation</div>`;
+            pending.forEach(ev => {
+                const item = document.createElement('div');
+                item.className = 'evt-item en-attente';
+                const label = ev.statut === 'en_attente_suppression' ? '🗑️ Suppression demandée' : '⏳ En attente';
+                item.innerHTML = `
+                    <div class="evt-item-info" style="cursor:pointer">
+                        <div class="evt-item-nom">${ev.nom_spectacle}</div>
+                        <div class="evt-item-date">${ev.etablissement} · ${formatDate(ev.date_evenement)} · ${label}</div>
+                    </div>
+                    ${ev.statut === 'en_attente' ? `<button class="btn-valider-evt">Valider</button>` : ''}
+                `;
+                item.querySelector('.evt-item-info').addEventListener('click', () => showEventDetail(ev));
+                if (ev.statut === 'en_attente') {
+                    item.querySelector('.btn-valider-evt').addEventListener('click', e => {
+                        e.stopPropagation();
+                        validerDirectement(ev.id_evenement, item);
+                    });
+                }
+                pendingGroup.appendChild(item);
+            });
+            list.appendChild(pendingGroup);
+        }
+
+        if (!upcoming.length) return;
 
         // Grouper par date
         const grouped = {};
@@ -556,10 +637,6 @@
             if (!grouped[ev.date_evenement]) grouped[ev.date_evenement] = [];
             grouped[ev.date_evenement].push(ev);
         });
-
-        const list = document.getElementById('events-list');
-        list.innerHTML = '';
-
         Object.keys(grouped).sort().forEach(date => {
             const evs = grouped[date].sort((a, b) => (a.horaire || '').localeCompare(b.horaire || ''));
             const group = document.createElement('div');
@@ -788,7 +865,9 @@
             if (data.ok) {
                 sessionStorage.setItem('mdp_valide', 'true');
                 sessionStorage.setItem('is_admin', data.isAdmin ? 'true' : 'false');
+                if (data.isAdmin) sessionStorage.setItem('admin_pwd', mdp);
                 updateAutreOption();
+                loadEvents();
                 hideModal('modal-mdp');
                 if (pendingAction === 'delete') {
                     demanderSuppression();

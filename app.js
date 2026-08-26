@@ -1077,6 +1077,12 @@ async function checkNewEvents() {
         const seenKeys = JSON.parse(localStorage.getItem('events_seen_keys') || '[]');
         const hasNew = currentKeys.some(k => !seenKeys.includes(k));
         dot.style.display = hasNew ? 'block' : 'none';
+
+        // Badge icône PWA pour l'admin (évènements en attente)
+        if (sessionStorage.getItem('is_admin') === 'true' && 'setAppBadge' in navigator) {
+            const pendingCount = events.filter(ev => ev.statut === 'en_attente').length;
+            pendingCount > 0 ? navigator.setAppBadge(pendingCount) : navigator.clearAppBadge();
+        }
     } catch (e) { /* silencieux */ }
 }
 

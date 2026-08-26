@@ -50,6 +50,12 @@ function doPost(e) {
             return demanderSuppression(data);
         }
 
+        if (action === 'validerDirectement') {
+            const mdpAdmin = PropertiesService.getScriptProperties().getProperty('MDP_ADMIN') || '';
+            if (!mdpAdmin || data.motdepasse !== mdpAdmin) return jsonOut({ error: 'Non autorisé' });
+            return validerDirectement(data.id_evenement);
+        }
+
         return jsonOut({ error: 'Action inconnue' });
 
     } catch (err) {
@@ -290,6 +296,27 @@ function confirmerSuppression(id, token) {
 
     return HtmlService.createHtmlOutput(
         CSS_ + '<h2>❌ Lien invalide ou évènement introuvable.</h2>');
+}
+
+// ── Validation directe depuis l'app (admin) ───────────────────────────────
+
+function validerDirectement(id) {
+    const ss     = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet  = ss.getSheetByName(ONGLET_EVENTS);
+    const values = sheet.getDataRange().getValues();
+    const hdr    = values[0];
+
+    const colId     = hdr.indexOf('id_evenement');
+    const colStatut = hdr.indexOf('statut');
+    const colDateV  = hdr.indexOf('date_validation');
+
+    for (let i = 1; i < values.length; i++) {
+        if (values[i][colId] !== id) continue;
+        sheet.getRange(i + 1, colStatut + 1).setValue('valide');
+        sheet.getRange(i + 1, colDateV  + 1).setValue(new Date().toISOString());
+        return jsonOut({ ok: true });
+    }
+    return jsonOut({ error: 'Évènement introuvable' });
 }
 
 // ── Validation admin (lien email) ─────────────────────────────────────────
