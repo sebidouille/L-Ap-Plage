@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fond blanc arrondi -->
+  <rect width="512" height="512" rx="80" fill="#ffffff"/>
+
+  <!-- Rayures du parasol (7 secteurs alternés) -->
+  <!-- Le parasol est centré en (256, 230), rayon 180 -->
+  <!-- Rayures : bleu #1e88e5 et blanc, on coupe en 6 parts -->
+  <clipPath id="umbrella-clip">
+    <ellipse cx="256" cy="230" rx="185" ry="90"/>
+  </clipPath>
+
+  <!-- Demi-ellipse pleine bleue de base -->
+  <path d="M71 230 A185 90 0 0 1 441 230 Z" fill="#1e88e5"/>
+
+  <!-- Rayures blanches (3 secteurs sur 6) -->
+  <path d="M256 230 L71 230 A185 90 0 0 1 133 148 Z" fill="#ffffff" opacity="0.9"/>
+  <path d="M256 230 L194 145 A185 90 0 0 1 318 145 Z" fill="#ffffff" opacity="0.9"/>
+  <path d="M256 230 L379 148 A185 90 0 0 1 441 230 Z" fill="#ffffff" opacity="0.9"/>
+
+  <!-- Contour du parasol -->
+  <path d="M71 230 A185 90 0 0 1 441 230 Z" fill="none" stroke="#1565c0" stroke-width="6"/>
+
+  <!-- Liseré bas du parasol -->
+  <path d="M71 230 Q256 290 441 230" fill="none" stroke="#1565c0" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Mât -->
+  <line x1="256" y1="225" x2="300" y2="430" stroke="#8d6e63" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Base / sable -->
+  <ellipse cx="305" cy="432" rx="28" ry="10" fill="#f9a825" opacity="0.85"/>
+
+  <!-- Petite pointe du parasol -->
+  <circle cx="256" cy="222" r="10" fill="#1565c0"/>
+</svg>
