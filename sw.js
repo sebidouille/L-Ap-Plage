@@ -1,4 +1,4 @@
-const CACHE = 'applage-v20260827185320';
+const CACHE = 'applage-v20260903193710';
 
 const PRECACHE = [
     './',
@@ -60,8 +60,8 @@ self.addEventListener('fetch', e => {
     if (e.request.method === 'POST') return;
     if (url.hostname.includes('script.google.com')) return;
 
-    // Google Sheets → network-first, fallback cache (données fraîches si réseau dispo)
-    if (url.hostname.includes('docs.google.com')) {
+    // Google Sheets & Open-Meteo → network-first, fallback cache (données fraîches si réseau dispo)
+    if (url.hostname.includes('docs.google.com') || url.hostname.includes('open-meteo.com')) {
         e.respondWith(
             fetch(e.request)
                 .then(r => {
