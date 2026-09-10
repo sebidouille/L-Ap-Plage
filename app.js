@@ -7,7 +7,6 @@ const CONFIG = {
         PLAGES:          0,
         MAREES:          138428367,
         RECOMMANDATIONS: 2049933385,
-        METEO:           146047806,
         BARS:            1057932141,
         RESTOS:          251951681,
         EVENTS:          1555556457
