@@ -5,7 +5,6 @@ const CONFIG = {
     SHEET_BASE_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJyHbc7PkwrZCNp4pk4yRIwskOUu27oWjYt_IBxNYtYG7aAWB2S1leol5nHITv29wUCYEiAczyTY9s/pub?output=csv',
     SHEET_GIDS: {
         PLAGES:          0,
-        MAREES:          138428367,
         RECOMMANDATIONS: 2049933385,
         BARS:            1057932141,
         RESTOS:          251951681,
