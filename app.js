@@ -90,15 +90,18 @@ function removePOI(glMap) {
 async function fetchMeteoData() {
     const LAT = '47.6389', LON = '-3.4523', TZ = 'Europe%2FParis', DAYS = 7;
     const VARS_VENT   = 'wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code,temperature_2m,precipitation';
-    const VARS_MARINE = 'wave_height,wave_direction,wave_period,sea_surface_temperature';
+    const marineBase = `https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&timezone=${TZ}&forecast_days=${DAYS}`;
     const base  = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=${VARS_VENT}&wind_speed_unit=kmh&timezone=${TZ}&forecast_days=${DAYS}`;
     const arome = base + '&models=meteofrance_arome_france';
-    const urlMarine = `https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&hourly=${VARS_MARINE}&timezone=${TZ}&forecast_days=${DAYS}`;
+    // Vagues : meteofrance_wave (7j, 8km) — temp eau : modèle global (sea_surface_temperature absent de MFWAM)
+    const urlVagues = marineBase + '&hourly=wave_height,wave_direction,wave_period&models=meteofrance_wave';
+    const urlTempEau = marineBase + '&hourly=sea_surface_temperature';
     try {
-        const [rArome, rGlobal, rMarine] = await Promise.all([
+        const [rArome, rGlobal, rVagues, rTempEau] = await Promise.all([
             fetch(arome).then(r => r.json()),
             fetch(base).then(r => r.json()),
-            fetch(urlMarine).then(r => r.json())
+            fetch(urlVagues).then(r => r.json()),
+            fetch(urlTempEau).then(r => r.json())
         ]);
         // Fusionner : AROME prioritaire, global en fallback si null
         const times = rGlobal.hourly.time;
@@ -112,10 +115,10 @@ async function fetchMeteoData() {
             weathercode:      pick(a.weather_code[i],       g.weather_code[i]),
             temperature_air:  pick(a.temperature_2m[i],    g.temperature_2m[i]),
             precipitation:    pick(a.precipitation[i],      g.precipitation[i]) ?? 0,
-            temperature_eau:  rMarine.hourly.sea_surface_temperature[i] ?? null,
-            hauteur_vagues:   rMarine.hourly.wave_height[i]              ?? null,
-            direction_vagues: rMarine.hourly.wave_direction[i]           ?? null,
-            periode_vagues:   rMarine.hourly.wave_period[i]              ?? null,
+            temperature_eau:  rTempEau.hourly.sea_surface_temperature[i] ?? null,
+            hauteur_vagues:   rVagues.hourly.wave_height[i]               ?? null,
+            direction_vagues: rVagues.hourly.wave_direction[i]            ?? null,
+            periode_vagues:   rVagues.hourly.wave_period[i]               ?? null,
         }));
     } catch (e) {
         console.warn('Open-Meteo indisponible', e);
