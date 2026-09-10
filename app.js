@@ -89,26 +89,33 @@ function removePOI(glMap) {
 // ============================================
 async function fetchMeteoData() {
     const LAT = '47.6389', LON = '-3.4523', TZ = 'Europe%2FParis', DAYS = 7;
-    const urlVent   = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code,temperature_2m,precipitation&wind_speed_unit=kmh&timezone=${TZ}&forecast_days=${DAYS}`;
-    const urlMarine = `https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&timezone=${TZ}&forecast_days=${DAYS}`;
+    const VARS_VENT   = 'wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code,temperature_2m,precipitation';
+    const VARS_MARINE = 'wave_height,wave_direction,wave_period,sea_surface_temperature';
+    const base  = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=${VARS_VENT}&wind_speed_unit=kmh&timezone=${TZ}&forecast_days=${DAYS}`;
+    const arome = base + '&models=meteofrance_arome_france';
+    const urlMarine = `https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&hourly=${VARS_MARINE}&timezone=${TZ}&forecast_days=${DAYS}`;
     try {
-        const [rVent, rMarine] = await Promise.all([
-            fetch(urlVent).then(r => r.json()),
+        const [rArome, rGlobal, rMarine] = await Promise.all([
+            fetch(arome).then(r => r.json()),
+            fetch(base).then(r => r.json()),
             fetch(urlMarine).then(r => r.json())
         ]);
-        const times = rVent.hourly.time;
+        // Fusionner : AROME prioritaire, global en fallback si null
+        const times = rGlobal.hourly.time;
+        const a = rArome.hourly, g = rGlobal.hourly;
+        const pick = (av, gv) => av !== null && av !== undefined ? av : gv ?? null;
         meteoData = times.map((t, i) => ({
             timestamp:        t,
-            force_vent_kmh:   rVent.hourly.wind_speed_10m[i]    ?? null,
-            direction_vent:   rVent.hourly.wind_direction_10m[i] ?? null,
-            rafales_kmh:      rVent.hourly.wind_gusts_10m[i]     ?? null,
-            weathercode:      rVent.hourly.weather_code[i]        ?? null,
-            temperature_air:  rVent.hourly.temperature_2m[i]     ?? null,
-            precipitation:    rVent.hourly.precipitation[i]      ?? 0,
+            force_vent_kmh:   pick(a.wind_speed_10m[i],    g.wind_speed_10m[i]),
+            direction_vent:   pick(a.wind_direction_10m[i], g.wind_direction_10m[i]),
+            rafales_kmh:      pick(a.wind_gusts_10m[i],    g.wind_gusts_10m[i]),
+            weathercode:      pick(a.weather_code[i],       g.weather_code[i]),
+            temperature_air:  pick(a.temperature_2m[i],    g.temperature_2m[i]),
+            precipitation:    pick(a.precipitation[i],      g.precipitation[i]) ?? 0,
             temperature_eau:  rMarine.hourly.sea_surface_temperature[i] ?? null,
-            hauteur_vagues:   rMarine.hourly.wave_height[i]      ?? null,
-            direction_vagues: rMarine.hourly.wave_direction[i]   ?? null,
-            periode_vagues:   rMarine.hourly.wave_period[i]      ?? null,
+            hauteur_vagues:   rMarine.hourly.wave_height[i]              ?? null,
+            direction_vagues: rMarine.hourly.wave_direction[i]           ?? null,
+            periode_vagues:   rMarine.hourly.wave_period[i]              ?? null,
         }));
     } catch (e) {
         console.warn('Open-Meteo indisponible', e);
