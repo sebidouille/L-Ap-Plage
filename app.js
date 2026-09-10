@@ -95,7 +95,7 @@ async function fetchMeteoData() {
     const arome = base + '&models=meteofrance_arome_france';
     // Vagues : meteofrance_wave (7j, 8km) — temp eau : modèle global (sea_surface_temperature absent de MFWAM)
     const urlVagues = marineBase + '&hourly=wave_height,wave_direction,wave_period&models=meteofrance_wave';
-    const urlTempEau = marineBase + '&hourly=sea_surface_temperature';
+    const urlTempEau = marineBase + '&hourly=sea_surface_temperature&models=meteofrance_currents';
     try {
         const [rArome, rGlobal, rVagues, rTempEau] = await Promise.all([
             fetch(arome).then(r => r.json()),
