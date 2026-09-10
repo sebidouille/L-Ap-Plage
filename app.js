@@ -89,7 +89,7 @@ function removePOI(glMap) {
 // ============================================
 async function fetchMeteoData() {
     const LAT = '47.6389', LON = '-3.4523', TZ = 'Europe%2FParis', DAYS = 7;
-    const urlVent   = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,weathercode,temperature_2m,precipitation&wind_speed_unit=kmh&timezone=${TZ}&forecast_days=${DAYS}`;
+    const urlVent   = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code,temperature_2m,precipitation&wind_speed_unit=kmh&timezone=${TZ}&forecast_days=${DAYS}`;
     const urlMarine = `https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&timezone=${TZ}&forecast_days=${DAYS}`;
     try {
         const [rVent, rMarine] = await Promise.all([
@@ -102,7 +102,7 @@ async function fetchMeteoData() {
             force_vent_kmh:   rVent.hourly.wind_speed_10m[i]    ?? null,
             direction_vent:   rVent.hourly.wind_direction_10m[i] ?? null,
             rafales_kmh:      rVent.hourly.wind_gusts_10m[i]     ?? null,
-            weathercode:      rVent.hourly.weathercode[i]        ?? null,
+            weathercode:      rVent.hourly.weather_code[i]        ?? null,
             temperature_air:  rVent.hourly.temperature_2m[i]     ?? null,
             precipitation:    rVent.hourly.precipitation[i]      ?? 0,
             temperature_eau:  rMarine.hourly.sea_surface_temperature[i] ?? null,
